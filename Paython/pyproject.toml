@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paypaython-mobile"
+version = "2.4.1"
+description = "PayPaython-Mobile-AWSWAF"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "requests",
+    "pkce",
+    "cryptography",
+    "curl-cffi"
+]
+
+authors = [
+    {name = "Medaka464"}
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
