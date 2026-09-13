@@ -40,6 +40,12 @@ from free_usage import (
 
 load_dotenv()
 
+if __name__ == '__main__':
+    # os.environ.get('PORT') でサーバー側が割り当てるポート番号を取得する
+    port = int(os.environ.get('PORT', 5000))
+    # host='0.0.0.0' に設定しないと外部（スマホなど）からアクセスできません
+    app.run(host='0.0.0.0', port=port)
+
 # =====================
 # プロキシ設定（全通信共通）
 # =====================
