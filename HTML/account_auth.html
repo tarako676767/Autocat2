@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>{{ 'サイトアカウント作成' if mode == 'register' else 'サイトログイン' }} | AUTOCAT JP</title>
+  <style>
+    :root{--bg:#090b11;--surface:#11151f;--surface2:#171c28;--line:#293247;--text:#edf4ff;--muted:#8d9bb0;--blue:#38bdf8;--blue2:#7dd3fc;--red:#fb7185;--green:#4ade80}
+    *{box-sizing:border-box}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 20% 0,rgba(56,189,248,.13),transparent 34%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Noto Sans JP',sans-serif}
+    .shell{width:min(430px,100%)}.brand{display:block;margin-bottom:20px;color:var(--text);font-weight:900;letter-spacing:.08em;text-decoration:none}.brand span{color:var(--blue)}
+    .panel{padding:26px;border:1px solid var(--line);border-radius:16px;background:rgba(17,21,31,.94);box-shadow:0 24px 80px rgba(0,0,0,.34)}
+    .eyebrow{color:var(--blue2);font-size:10px;font-weight:900;letter-spacing:.13em}.panel h1{margin:5px 0 7px;font-size:24px}.lead{margin:0 0 22px;color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:0 0 14px;color:var(--muted);font-size:11px;font-weight:700}input{width:100%;margin-top:6px;padding:12px 13px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--text);font:14px inherit;outline:none}input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+    .button{width:100%;padding:12px;border:0;border-radius:9px;background:var(--blue);color:#03141d;font:900 14px inherit;cursor:pointer}.button:disabled{opacity:.45;cursor:not-allowed}.error{min-height:21px;margin:10px 0 0;color:#fecdd3;font-size:12px}.switch{margin:18px 0 0;text-align:center;color:var(--muted);font-size:12px}.switch a,.back{color:var(--blue2);text-decoration:none}.rule{margin-top:16px;padding-top:15px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.7}.back{display:inline-block;margin-top:15px;font-size:12px}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <a class="brand" href="/">AUTOCAT <span>JP</span></a>
+  <section class="panel">
+    <div class="eyebrow">SITE ACCOUNT</div>
+    <h1>{{ 'アカウントを作成' if mode == 'register' else 'ログイン' }}</h1>
+    <p class="lead">{{ 'VIP購入・契約確認に使用する専用アカウントです。Discordアカウントとは別に管理されます。' if mode == 'register' else 'VIP購入とVIP機能を利用するサイトアカウントへログインします。' }}</p>
+    <form id="account-form">
+      <label>ユーザー名
+        <input id="username" maxlength="24" autocomplete="username" required placeholder="2〜24文字">
+      </label>
+      <label>パスワード
+        <input id="password" type="password" minlength="8" maxlength="128" autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" required placeholder="8文字以上">
+      </label>
+      {% if mode == 'register' %}
+      <label>パスワードを確認
+        <input id="password-confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required placeholder="同じパスワードを入力">
+      </label>
+      {% endif %}
+      <button id="submit" class="button" type="submit">{{ 'アカウントを作成' if mode == 'register' else 'ログイン' }}</button>
+      <div id="error" class="error" role="alert"></div>
+    </form>
+    {% if mode == 'register' %}
+      <p class="switch">すでに持っている場合は <a href="/account/login?next={{ next_url }}">ログイン</a></p>
+      <p class="rule">同じブラウザでは1アカウント、同じ回線では最大3アカウントまで作成できます。回線単位の登録は1時間に3件までです。</p>
+    {% else %}
+      <p class="switch">初めての場合は <a href="/account/register?next={{ next_url }}">新規作成</a></p>
+    {% endif %}
+  </section>
+  <a class="back" href="/">← トップへ戻る</a>
+</main>
+<script>window.ACCOUNT_AUTH_CONFIG={{ {'mode':mode,'csrfToken':csrf_token,'next':next_url}|tojson }};</script>
+<script src="/static/account-auth.js?v=20260829-1" defer></script>
+</body>
+</html>
