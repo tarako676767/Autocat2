@@ -5873,6 +5873,6 @@ register_moderation_routes(
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("にゃんこ代行ツール - Web版")
+    print("autocat2 - Web版")
     print("=" * 50)
     app.run(debug=False, host="0.0.0.0", port=1142, threaded=True)
