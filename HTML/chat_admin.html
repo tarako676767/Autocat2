@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AUTOCAT JP Chat Admin</title>
+  <style>
+    :root{--bg:#090b11;--surface:#11151f;--surface2:#171c28;--line:#263044;--text:#edf4ff;--muted:#8d9bb0;--blue:#38bdf8;--red:#fb7185}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,sans-serif}.wrap{max-width:820px;margin:auto;padding:20px}.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}.header h1{font-size:19px;margin:0}.spacer{flex:1}.btn{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:9px;padding:9px 13px;text-decoration:none;cursor:pointer}.btn:hover{border-color:var(--blue)}.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}.panel h2{font-size:15px;margin:0 0 12px}.code-form{display:grid;grid-template-columns:1fr auto;gap:10px}.code-form input{min-width:0;background:var(--surface2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px;text-transform:uppercase}.restriction{display:grid;grid-template-columns:1fr auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.restriction:last-child{border-bottom:0}.name{font-weight:800}.meta{color:var(--muted);font-size:12px;margin-top:5px}.empty{color:var(--muted);text-align:center;padding:20px}.error{color:#fecdd3}.success{color:#86efac}.status{min-height:20px;margin-top:10px;font-size:13px}@media(max-width:560px){.wrap{padding:14px}.code-form{grid-template-columns:1fr}.restriction{grid-template-columns:1fr}.restriction .btn{justify-self:start}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <div class="header">
+    <h1>AUTOCAT JP チャット管理</h1>
+    <div class="spacer"></div>
+    <a class="btn" href="/chat">チャットへ戻る</a>
+  </div>
+  <section class="panel">
+    <h2>BAN解除コード</h2>
+    <form id="code-form" class="code-form">
+      <input id="unlock-code" maxlength="19" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+      <button class="btn" type="submit">BANを解除</button>
+    </form>
+    <div id="status" class="status"></div>
+  </section>
+  <section class="panel">
+    <h2>BAN・タイムアウト中のユーザー</h2>
+    <div id="restrictions"><div class="empty">読み込み中...</div></div>
+  </section>
+</main>
+<script>window.CHAT_ADMIN_CONFIG={{ {'csrfToken': csrf_token}|tojson }};</script>
+<script src="/chat-assets/chat-admin.js?v=20260827-5" defer></script>
+</body>
+</html>

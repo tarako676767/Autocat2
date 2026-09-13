@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>マイアカウント | AUTOCAT JP</title>
+  <style>
+    :root{--bg:#090b11;--surface:#11151f;--surface2:#171c28;--line:#293247;--text:#edf4ff;--muted:#8d9bb0;--blue:#38bdf8;--gold:#facc15;--green:#4ade80}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(56,189,248,.08),transparent 30%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Noto Sans JP',sans-serif}a{text-decoration:none;color:inherit}
+    header{display:flex;align-items:center;gap:10px;padding:14px max(16px,calc((100vw - 960px)/2));border-bottom:1px solid var(--line);background:rgba(9,11,17,.9);position:sticky;top:0}.brand{font-weight:900}.brand span{color:var(--blue)}.spacer{flex:1}.btn{display:inline-flex;padding:9px 13px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-size:12px;font-weight:800}.btn:hover{border-color:var(--blue)}.primary{border:0;background:var(--blue);color:#03141d}
+    main{width:min(960px,calc(100% - 28px));margin:32px auto 80px}.welcome{display:flex;align-items:flex-end;gap:16px;margin-bottom:20px}.welcome h1{margin:0;font-size:26px}.welcome p{margin:3px 0 0;color:var(--muted);font-size:12px}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.card{padding:19px;border:1px solid var(--line);border-radius:14px;background:rgba(17,21,31,.9)}.card h2{margin:0 0 14px;font-size:14px}.id{display:flex;align-items:center;gap:8px;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);font:800 18px ui-monospace,monospace;letter-spacing:.08em;color:var(--blue)}.copy{margin-left:auto;border:0;background:transparent;color:var(--muted);cursor:pointer}.meta{display:grid;grid-template-columns:120px 1fr;gap:9px;margin-top:14px;font-size:12px}.meta dt{color:var(--muted)}.meta dd{margin:0}.vip{display:flex;align-items:center;gap:12px}.vip-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(250,204,21,.12);color:var(--gold);font-size:23px}.vip strong{display:block}.vip span{color:var(--muted);font-size:11px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}
+    .tickets{margin-top:14px}.ticket{display:grid;grid-template-columns:1fr auto;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.ticket:last-child{border:0}.key{font:800 13px ui-monospace,monospace;color:var(--blue)}.small{color:var(--muted);font-size:11px;margin-top:3px}.status{align-self:center;padding:4px 8px;border-radius:99px;border:1px solid var(--line);font-size:10px}.empty{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+    .trial{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:14px;border-color:rgba(74,222,128,.38);background:rgba(74,222,128,.06)}.trial strong{color:#86efac}.trial p{flex:1;min-width:220px;margin:0;color:var(--muted);font-size:11px}.trial-time{font:900 18px ui-monospace,monospace;color:#86efac}
+    @media(max-width:700px){header{padding:11px}.grid{grid-template-columns:1fr}.welcome{align-items:flex-start;flex-direction:column}.hide-mobile{display:none}.meta{grid-template-columns:100px 1fr}}
+  </style>
+</head>
+<body>
+<header><a class="brand" href="/">AUTOCAT <span>JP</span></a><div class="spacer"></div><a class="btn hide-mobile" href="/chat">チャット</a><a class="btn" href="/account/logout">ログアウト</a></header>
+<main>
+  <div class="welcome"><div><h1>{{ account.username }}</h1><p>サイトアカウントとVIP契約の管理</p></div><div class="spacer"></div>{% if account.is_vip %}<a class="btn primary" href="/vip">VIPページを開く</a>{% else %}<a class="btn primary" href="/vip-guide#plans">VIPプランを選ぶ</a>{% endif %}</div>
+  {% if not account.is_vip and account.trial_offer_active %}<section id="trial" class="card trial" data-expires="{{ account.trial_offer_expires_at }}"><div><strong>招待1人成立でVIPを1回無料</strong><p>登録後1時間以内限定です。VIP処理が失敗した場合は回数を消費しません。</p></div><span id="trial-time" class="trial-time">--:--</span><a class="btn primary" href="/?trial_invite=1">招待リンクを発行</a></section>{% endif %}
+  <div class="grid">
+    <section class="card">
+      <h2>サイトアカウントID</h2>
+      <div class="id"><span id="account-id">{{ account.public_id }}</span><button class="copy" type="button" onclick="navigator.clipboard.writeText(document.getElementById('account-id').textContent);this.textContent='コピー済み'">コピー</button></div>
+      <dl class="meta"><dt>ユーザー名</dt><dd>{{ account.username }}</dd><dt>作成日時</dt><dd data-time="{{ account.created_at }}"></dd><dt>用途</dt><dd>VIP付与・購入申請の照合</dd></dl>
+    </section>
+    <section class="card">
+      <h2>VIP契約</h2>
+      <div class="vip"><div class="vip-mark">★</div><div><strong>{% if account.is_paid_vip %}VIP 契約中{% elif account.is_trial_vip %}VIP 無料体験{% else %}Free{% endif %}</strong><span>{% if account.is_paid_vip and account.vip_expires_at %}有効期限: <b data-time="{{ account.vip_expires_at }}"></b>{% elif account.is_paid_vip %}有効期限なし{% elif account.is_trial_vip %}VIP版の実行 残り{{ account.trial_vip_uses_remaining }}回{% else %}現在VIP契約はありません{% endif %}</span></div></div>
+      <div class="actions">{% if account.is_vip %}<a class="btn primary" href="/vip">VIPを使う</a><a class="btn" href="/vip-guide#plans">VIPを延長</a>{% endif %}<a class="btn" href="/vip/purchase">購入DM・申請履歴</a></div>
+    </section>
+  </div>
+  <section class="card tickets">
+    <h2>VIP購入申請</h2>
+    {% if tickets %}{% for ticket in tickets %}<a class="ticket" href="/vip/purchase?key={{ ticket.purchase_key }}"><div><div class="key">{{ ticket.purchase_key }}</div><div class="small">VIP {{ ticket.requested_days }}日・{{ '{:,}'.format(ticket.price_yen) }}円　<span data-time="{{ ticket.updated_at }}"></span>{% if ticket.chat_closed %}　DM終了{% endif %}</div></div><span class="status" data-status="{{ ticket.status }}">{{ ticket.status }}</span></a>{% endfor %}{% else %}<div class="empty">購入申請はまだありません。</div>{% endif %}
+  </section>
+</main>
+<script>
+const labels={pending:'申請受付',awaiting_payment:'支払い待ち',payment_review:'確認中',completed:'VIP付与完了',cancelled:'キャンセル'};
+document.querySelectorAll('[data-time]').forEach(el=>el.textContent=new Date(Number(el.dataset.time)*1000).toLocaleString('ja-JP'));
+document.querySelectorAll('[data-status]').forEach(el=>el.textContent=labels[el.dataset.status]||el.dataset.status);
+function updateTrial(){const box=document.getElementById('trial'),out=document.getElementById('trial-time');if(!box||!out)return;const seconds=Math.max(0,Math.ceil(Number(box.dataset.expires)-Date.now()/1000));if(!seconds){box.hidden=true;return;}out.textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;}updateTrial();setInterval(updateTrial,1000);
+</script>
+</body>
+</html>
