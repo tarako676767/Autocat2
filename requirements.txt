@@ -1,0 +1,10 @@
+bcsfe
+flask
+dotenv
+flask_limiter
+beautifulsoup4
+cryptography
+requests
+pkce
+curl-cffi
+pywebpush
