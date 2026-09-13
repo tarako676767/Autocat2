@@ -8,3 +8,4 @@ requests
 pkce
 curl-cffi
 pywebpush
+gunicorn
