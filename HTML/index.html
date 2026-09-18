@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>にゃんこ大戦争代行ツール</title>
+<style>
+  @font-face {
+    font-family: 'KogoeLight';
+    src: url("{{ url_for('static', filename='fonts/Kogoe-Light.ttf') }}") format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  :root {
+    --bg: #0f0f14;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: #2e2e3e;
+    --accent: #38bdf8;
+    --accent2: #7dd3fc;
+    --accent-glow: rgba(56,189,248,0.18);
+    --text: #e8e8f0;
+    --muted: #8888aa;
+    --success: #22c55e;
+    --error: #ef4444;
+    --tag-bg: #0c2233;
+    --tag-border: #1e5a7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    pointer-events: none;
+    user-select: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='150' viewBox='0 0 260 150'%3E%3Ctext x='18' y='90' transform='rotate(-24 18 90)' fill='%23ffffff' fill-opacity='.055' font-family='Arial,sans-serif' font-size='22' font-weight='700' letter-spacing='2'%3Eautocat.jp%3C/text%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 260px 150px;
+  }
+  @media (max-width: 640px) {
+    body::before {
+      background-size: 210px 121px;
+    }
+  }
+  header {
+    background: linear-gradient(135deg, #001a1f 0%, #0f0f14 60%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 20px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .logo span { color: var(--text); }
+  .usage-stats { display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px; }
+  .usage-counter {
+    font-family: 'KogoeLight', 'Hiragino Kaku Gothic ProN', sans-serif;
+    font-size: 13px;
+    color: var(--accent2);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-left: 4px;
+  }
+  .usage-counter .usage-count-num {
+    font-size: 15px;
+    color: var(--accent);
+  }
+  .remaining-counter { color:var(--success); }
+  .remaining-counter .usage-count-num { color:var(--success); }
+  @media (max-width: 640px) {
+    .usage-counter { font-size: 11px; }
+    .usage-counter .usage-count-num { font-size: 13px; }
+  }
+  .header-spacer { flex: 1 1 auto; min-width: 8px; }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .header-actions .btn {
+    padding: 6px 14px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .vip-badge { color: var(--accent); font-weight: 700; }
+  .vip-link {
+    color:#081018 !important; border-color:#facc15 !important;
+    background:linear-gradient(135deg,#fde047,#f59e0b) !important;
+    box-shadow:0 0 20px rgba(250,204,21,.16);
+  }
+  .vip-link:hover { color:#000 !important; border-color:#fde68a !important; transform:translateY(-1px); }
+  .main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+  .vip-promo {
+    position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0,1fr) auto;
+    gap:18px; align-items:center; margin-bottom:18px; padding:20px 22px;
+    border:1px solid rgba(250,204,21,.42); border-radius:12px;
+    background:linear-gradient(135deg,rgba(250,204,21,.13),rgba(56,189,248,.08) 58%,var(--surface));
+    box-shadow:0 14px 38px rgba(0,0,0,.18);
+  }
+  .vip-promo::after {
+    content:'VIP'; position:absolute; right:120px; top:-30px; color:rgba(250,204,21,.055);
+    font-size:108px; font-weight:900; line-height:1; transform:rotate(-8deg); pointer-events:none;
+  }
+  .vip-promo-kicker { color:#fde047; font-size:11px; font-weight:800; letter-spacing:.14em; }
+  .vip-promo-title { margin:3px 0 5px; font-size:18px; font-weight:800; }
+  .vip-promo-copy { color:var(--muted); font-size:12px; }
+  .vip-promo-points { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .vip-promo-point { padding:3px 9px; border:1px solid rgba(250,204,21,.28); border-radius:999px; color:#fef3c7; font-size:10px; background:rgba(250,204,21,.07); }
+  .vip-promo-action { position:relative; z-index:1; white-space:nowrap; }
+  .trial-promo { display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:-6px 0 18px;padding:14px 17px;border:1px solid rgba(74,222,128,.38);border-radius:11px;background:rgba(74,222,128,.07); }
+  .trial-promo strong { color:#86efac;font-size:14px; }.trial-promo p{flex:1;min-width:220px;color:var(--muted);font-size:11px}.trial-countdown{font:800 15px ui-monospace,monospace;color:#86efac}
+  .month-end-nudge{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:13px 15px;border:1px solid rgba(56,189,248,.42);border-radius:11px;background:rgba(56,189,248,.07)}.month-end-nudge[hidden]{display:none!important}.month-end-nudge strong{color:#7dd3fc}.month-end-nudge p{flex:1;min-width:220px;margin:0;color:var(--muted);font-size:11px}.month-end-actions{display:flex;gap:7px;flex-wrap:wrap}
+  .free-option-actions { display:flex;justify-content:flex-end;margin-bottom:10px; }.free-option-actions .btn{padding:7px 12px;font-size:11px}
+  .vip-locked-card { border-color:rgba(250,204,21,.3);background:linear-gradient(135deg,rgba(250,204,21,.055),var(--surface)); }
+  .vip-locked-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:5px; }
+  .vip-locked-option { display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(250,204,21,.17);border-radius:6px;color:#d6cfae;background:rgba(250,204,21,.025);cursor:pointer;user-select:none; }
+  .vip-lock { display:grid;place-items:center;width:17px;height:17px;border-radius:4px;background:rgba(250,204,21,.13);color:#fde047;font-size:10px;flex:none }.vip-locked-option span:last-child{font-size:12px}.vip-locked-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:11px}
+  .free-preset-modal { display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.72);backdrop-filter:blur(5px) }.free-preset-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(520px,94vw);padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}.free-preset-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}.free-preset-head strong{font-size:14px}.free-preset-head span{color:var(--muted);font-size:10px}.free-preset-dialog input{width:100%;padding:10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text)}.free-preset-status{min-height:18px;margin-top:8px;color:var(--muted);font-size:11px}.free-preset-buttons{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin-top:12px}
+
+  @media (max-width: 640px) {
+    header { padding: 12px 14px; gap: 9px; min-height:72px; }
+    .logo { font-size: 17px; }
+    .usage-stats { width:100%;order:3;gap:6px 14px; }
+    .header-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+    .header-actions .btn { padding: 6px 11px; font-size: 12px; }
+    .user-chip { font-size: 12px; padding: 5px 9px; }
+    .vip-promo { grid-template-columns:1fr; padding:17px 16px; }
+    .vip-promo-action { width:100%; justify-content:center; }
+    .vip-locked-grid { grid-template-columns:1fr 1fr; }
+  }
+
+  .tabs { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 20px; cursor: pointer; border: none;
+    background: transparent; color: var(--muted); font-size: 13px;
+    font-family: inherit; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 14px; }
+  .card-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-title::before { content: ''; display: inline-block; width: 3px; height: 13px; background: var(--accent); border-radius: 2px; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 9px 12px; color: var(--text);
+    font-family: 'Consolas', 'Monaco', monospace; font-size: 14px;
+    letter-spacing: 0.05em; outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .field input::placeholder { color: var(--muted); letter-spacing: 0; font-family: inherit; }
+  .field-error { font-size: 11px; color: var(--error); margin-top: 4px; min-height: 14px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 5px; }
+  .opt {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: 6px; border: 1px solid transparent; cursor: pointer;
+    transition: all 0.12s; user-select: none;
+  }
+  .opt:hover { background: var(--surface2); border-color: var(--border); }
+  .opt.checked { background: var(--tag-bg); border-color: var(--tag-border); }
+  .checkmark {
+    width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.12s;
+  }
+  .opt.checked .checkmark { background: var(--accent); border-color: var(--accent); }
+  .checkmark::after {
+    content: ''; display: none; width: 4px; height: 7px;
+    border: 2px solid #000; border-top: none; border-left: none;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .opt.checked .checkmark::after { display: block; }
+  .opt-label { font-size: 13px; }
+  .opt.checked .opt-label { color: var(--accent2); }
+
+  .tag-bar { display: flex; flex-wrap: wrap; gap: 5px; min-height: 26px; padding: 4px 0 6px; }
+  .tag { padding: 2px 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 99px; font-size: 11px; color: var(--accent2); }
+  .tag-empty { font-size: 12px; color: var(--muted); }
+
+  .sticky-action-bar { position:fixed; left:50%; bottom:12px; transform:translateX(-50%); z-index:700; width:min(928px,calc(100vw - 24px)); display:flex; justify-content:flex-end; align-items:center; padding:10px 12px; background:rgba(24,24,31,.96); border:1px solid var(--border); border-radius:12px; box-shadow:0 14px 45px rgba(0,0,0,.45); backdrop-filter:blur(12px); }
+  .sticky-action-bar .btn { min-width:210px; padding:10px 20px; }
+  #btn-daiko, #btn-create, #btn-clone { display:none; }
+  body { padding-bottom:86px; }
+
+  @media (max-width:580px) {
+    .sticky-action-bar { bottom:8px; width:calc(100vw - 16px); padding:8px; }
+    .sticky-action-bar .btn { width:100%; padding:8px 10px; font-size:11px; }
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 22px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; box-shadow: 0 0 18px var(--accent-glow); }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary:active { transform: none; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+  .result-box { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 14px; }
+  .result-box.show { display: block; }
+  .result-box.success { border-color: var(--success); }
+  .result-box.error-box { border-color: var(--error); }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+  .progress-fill.anim { animation: indeterminate 1.4s ease infinite; background: linear-gradient(90deg, transparent, var(--accent), transparent); background-size: 200% 100%; }
+  @keyframes indeterminate { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .code-display { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .code-display-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .code-section-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.08em; text-transform: uppercase; grid-column: 1 / -1; }
+  .code-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .code-box .clabel { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .code-val { font-family: 'Consolas','Monaco',monospace; font-size: 18px; font-weight: 700; color: var(--success); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+  .copy-btn { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: inherit; flex-shrink: 0; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .applied-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+  .applied-tag { padding: 2px 10px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 99px; font-size: 11px; color: var(--success); }
+  .status-text { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .error-msg { color: var(--error); font-size: 13px; }
+  .char-note { font-size: 11px; color: var(--accent); margin-top: 4px; }
+
+  .count-btn {
+    padding: 7px 18px; border-radius: 7px; border: 1.5px solid var(--border);
+    background: var(--surface2); color: var(--muted); font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .count-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .count-btn.active {
+    background: var(--tag-bg); border-color: var(--accent);
+    color: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+  }
+
+  .custom-inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 12px; }
+  .custom-input-row { display: flex; flex-direction: column; gap: 4px; }
+  .custom-input-row label { font-size: 11px; color: var(--muted); }
+  .custom-input-row input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; color: var(--text);
+    font-family: 'Consolas','Monaco',monospace; font-size: 13px;
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  .custom-input-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .custom-input-row .field-error { font-size: 10px; }
+
+  .invite-drawer {
+    position:fixed;left:50%;z-index:99;width:min(720px,calc(100vw - 24px));
+    transform:translate(-50%,-130%);opacity:0;pointer-events:none;
+    background:rgba(24,24,31,.98);border:1px solid var(--tag-border);
+    border-radius:0 0 14px 14px;padding:18px 20px;
+    box-shadow:0 18px 45px rgba(0,0,0,.5);backdrop-filter:blur(14px);
+    transition:transform .25s ease,opacity .2s ease;
+  }
+  .invite-drawer.open { transform:translate(-50%,0);opacity:1;pointer-events:auto; }
+  .invite-drawer-head { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+  .invite-drawer-title { font-size:14px;font-weight:700;color:var(--accent2); }
+  .invite-link-row { display:flex;gap:8px;align-items:stretch; }
+  .invite-link-row input {
+    flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);
+    border-radius:7px;padding:9px 11px;color:var(--text);font-family:'Consolas','Monaco',monospace;
+  }
+  .top-notice {
+    position:fixed;left:50%;z-index:110;transform:translate(-50%,-150%);
+    width:min(520px,calc(100vw - 24px));padding:12px 16px;border-radius:10px;
+    background:var(--surface2);border:1px solid var(--success);color:var(--text);
+    box-shadow:0 14px 38px rgba(0,0,0,.48);text-align:center;font-size:13px;font-weight:700;
+    opacity:0;pointer-events:none;transition:transform .25s ease,opacity .2s ease;
+  }
+  .top-notice.show { transform:translate(-50%,10px);opacity:1; }
+  .top-notice.error { border-color:var(--error);color:#fecaca; }
+
+
+  @media (max-width: 580px) {
+    .row-2 { grid-template-columns: 1fr; }
+    .code-display { grid-template-columns: 1fr; }
+    .code-display-4 { grid-template-columns: 1fr; }
+    .option-grid { grid-template-columns: 1fr 1fr; }
+    .custom-inputs-grid { grid-template-columns: 1fr 1fr; }
+    .invite-drawer { width:calc(100vw - 16px);padding:15px 14px; }
+    .invite-link-row { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== 全面広告モーダル ========== -->
+<div id="ad-overlay" style="
+  display:none;
+  position:fixed;inset:0;z-index:99999;
+  background:rgba(0,0,0,0.92);
+  backdrop-filter:blur(6px);
+  cursor:pointer;
+" onclick="handleAdClick(event)">
+
+  <div id="ad-close-btn" onclick="closeAd(event)" style="
+    position:absolute;top:0;right:0;
+    width:80px;height:80px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;z-index:100001;
+  ">
+    <div style="
+      width:44px;height:44px;
+      background:rgba(255,255,255,0.12);
+      border:2px solid rgba(255,255,255,0.3);
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;color:#fff;
+      transition:background 0.15s,border-color 0.15s;
+    " onmouseover="this.style.background='rgba(255,255,255,0.25)';this.style.borderColor='rgba(255,255,255,0.7)'"
+       onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.3)'">
+      ✕
+    </div>
+  </div>
+
+  <div style="
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    pointer-events:none;
+    user-select:none;
+    padding:0 24px;
+    width:min(460px,90vw);
+  ">
+    <div style="margin-bottom:24px;">
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" rx="20" fill="#5865F2"/>
+        <path d="M50.4 22.8C47.6 21.5 44.6 20.6 41.5 20.1C41.1 20.8 40.7 21.8 40.4 22.6C37.1 22.1 33.9 22.1 30.6 22.6C30.3 21.8 29.9 20.8 29.5 20.1C26.4 20.6 23.4 21.5 20.6 22.8C15.1 31.1 13.6 39.2 14.3 47.2C17.9 49.9 21.4 51.5 24.8 52.6C25.7 51.4 26.5 50.1 27.2 48.7C25.9 48.2 24.6 47.6 23.4 46.9C23.7 46.7 24 46.4 24.3 46.2C31.5 49.6 39.5 49.6 46.7 46.2C47 46.5 47.3 46.7 47.6 46.9C46.4 47.6 45.1 48.2 43.8 48.7C44.5 50.1 45.3 51.4 46.2 52.6C49.6 51.5 53.1 49.9 56.7 47.2C57.6 37.9 55.2 29.9 50.4 22.8ZM28.7 42.3C26.6 42.3 24.9 40.4 24.9 38.1C24.9 35.8 26.6 33.9 28.7 33.9C30.8 33.9 32.5 35.8 32.5 38.1C32.5 40.4 30.8 42.3 28.7 42.3ZM43.3 42.3C41.2 42.3 39.5 40.4 39.5 38.1C39.5 35.8 41.2 33.9 43.3 33.9C45.4 33.9 47.1 35.8 47.1 38.1C47.1 40.4 45.4 42.3 43.3 42.3Z" fill="white"/>
+      </svg>
+    </div>
+
+    <div style="
+      font-size:13px;font-weight:600;
+      letter-spacing:0.15em;text-transform:uppercase;
+      color:#5865F2;margin-bottom:10px;
+    ">AUTOCAT JP VIP</div>
+
+    <div style="
+      font-size:clamp(22px,6vw,32px);
+      font-weight:800;color:#fff;
+      margin-bottom:8px;line-height:1.2;
+    ">回数無制限・詳細設定</div>
+
+    <div style="
+      font-size:14px;color:rgba(255,255,255,0.55);
+      margin-bottom:32px;
+    ">タップしてVIP版の機能と購入方法を見る</div>
+
+    <div style="font-size:28px;color:rgba(255,255,255,0.4);animation:adBounce 1.4s ease-in-out infinite;">↓</div>
+  </div>
+</div>
+
+<style>
+@keyframes adBounce {
+  0%,100% { transform:translateY(0); }
+  50%      { transform:translateY(8px); }
+}
+</style>
+
+<script>
+(function() {
+  const AD_KEY  = 'nyanko_ad_last_shown';
+  const AD_TTL  = 12 * 60 * 60 * 1000;
+  const VIP_GUIDE = '/vip-guide';
+
+  function shouldShowAd() {
+    try {
+      const last = localStorage.getItem(AD_KEY);
+      if (!last) return true;
+      return (Date.now() - parseInt(last, 10)) > AD_TTL;
+    } catch { return true; }
+  }
+
+  function recordShown() {
+    try { localStorage.setItem(AD_KEY, Date.now().toString()); } catch {}
+  }
+
+  window.closeAd = function(e) {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    document.getElementById('ad-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+
+  window.handleAdClick = function(e) {
+    if (e.target.closest('#ad-close-btn')) return;
+    closeAd();
+    window.location.assign(VIP_GUIDE);
+  };
+
+  window.addEventListener('DOMContentLoaded', function() {
+    if (shouldShowAd()) {
+      recordShown();
+      document.getElementById('ad-overlay').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+  });
+})();
+</script>
+<!-- ========== /全面広告モーダル ========== -->
+
+<header id="site-header">
+  <div class="logo">にゃんこ<span>代行ツール</span></div>
+  <div class="usage-stats">
+    <span class="usage-counter">使用回数<span class="usage-count-num" id="usage-count-num">--</span>回</span>
+    <span class="usage-counter remaining-counter" title="招待などで獲得した、週間枠とは別の回数">ボーナス回数<span class="usage-count-num" id="remaining-count-num">--</span><span id="remaining-count-suffix">回</span></span>
+    <span class="usage-counter" title="毎週月曜0:00に10回へ更新・合計上限20回">今週分<span class="usage-count-num" id="weekly-count-num">--</span>回</span>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" id="invite-button" onclick="toggleInvitation()">招待</button>
+    <button class="btn btn-ghost" onclick="openCharSearch()">キャラ検索</button>
+    <button class="btn btn-ghost" onclick="openHistory()">履歴</button>
+    <button class="btn btn-ghost" onclick="openTerms()">利用規約</button>
+    <a href="/chat" class="btn btn-ghost">チャット</a>
+
+    {% if discord_user %}
+    <a href="/chat" class="user-chip" style="text-decoration:none;">Discord: {{ discord_user.username }}</a>
+    {% if discord_is_admin %}<a href="/admin/panel" class="btn btn-ghost">管理</a>{% endif %}
+    <a href="/auth/logout" class="btn btn-ghost">Discordログアウト</a>
+    {% else %}
+    <a href="/auth/login?next=/" class="btn btn-ghost">Discordログイン</a>
+    {% endif %}
+
+    {% if not user or not user.is_vip %}
+    <a href="/vip-guide" class="btn btn-ghost vip-link">★ VIPを見る</a>
+    {% endif %}
+
+    {% if not user %}
+    <a href="/account/login" class="btn btn-ghost">サイトログイン</a>
+    <a href="/account/register" class="btn btn-ghost">アカウント作成</a>
+    {% else %}
+    <a href="/account" class="user-chip" style="text-decoration:none;">
+      {{ user.username }}{% if user.is_vip %} <span class="vip-badge">★VIP</span>{% endif %}
+    </a>
+    {% if user.is_vip %}
+    <a href="/vip" class="btn btn-ghost">VIPページへ</a>
+    {% endif %}
+    <a href="/account/logout" class="btn btn-ghost">サイトログアウト</a>
+    {% endif %}
+  </div>
+</header>
+
+<div id="invite-drawer" class="invite-drawer" aria-hidden="true">
+  <div class="invite-drawer-head">
+    <div class="invite-drawer-title">あなたの招待リンク</div>
+    <div class="header-spacer"></div>
+    <button class="copy-btn" onclick="toggleInvitation(false)">閉じる</button>
+  </div>
+  <div class="invite-link-row">
+    <input type="text" id="invitation-link" value="読み込み中..." readonly aria-label="あなたの招待リンク">
+    <button class="btn btn-primary" id="copy-invitation-button" onclick="copyInvitationLink()" disabled>コピー</button>
+  </div>
+  <div id="invitation-message" class="char-note" style="margin-top:9px;">リンクを開いた人が無料版を1回成功させると、招待者に3回・利用者に2回付与されます。週間無料枠と招待報酬を合わせて最大20回まで保有できます。</div>
+</div>
+<div id="top-notice" class="top-notice" role="status" aria-live="polite"></div>
+
+<div id="free-preset-modal" class="free-preset-modal" onclick="if(event.target===this)closeFreePreset()">
+  <div class="free-preset-dialog">
+    <div class="free-preset-head"><strong>Freeプリセット</strong><span>保存可能 1件</span><div class="header-spacer"></div><button class="copy-btn" type="button" onclick="closeFreePreset()">✕</button></div>
+    <input id="free-preset-name" maxlength="40" placeholder="プリセット名">
+    <div id="free-preset-status" class="free-preset-status"></div>
+    <div class="free-preset-buttons"><button class="btn btn-ghost" type="button" onclick="deleteFreePreset()">削除</button><button class="btn btn-ghost" type="button" onclick="saveFreePreset()">登録／上書き</button><button class="btn btn-primary" type="button" onclick="loadFreePresetIntoCurrentTab()">読込</button></div>
+  </div>
+</div>
+
+<!-- キャラ検索モーダル -->
+<div id="charsearch-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)closeCharSearch()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,95vw);max-height:85vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:15px;font-weight:700;color:var(--text);">キャラ番号検索</span>
+      <div style="flex:1"></div>
+      <button onclick="closeCharSearch()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--muted);cursor:pointer;font-size:18px;font-family:inherit;line-height:1;">✕</button>
+    </div>
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="charsearch-input" placeholder="キャラ名を入力..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color 0.15s;" oninput="onCharSearchInput()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="charsearch-status" style="font-size:11px;color:var(--muted);margin-top:6px;min-height:16px;"></div>
+    </div>
+    <div id="charsearch-results" style="overflow-y:auto;padding:10px 20px;flex:1;"></div>
+  </div>
+</div>
+
+<!-- 履歴モーダル -->
+<div id="history-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)closeHistory()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(820px,95vw);max-height:85vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:15px;font-weight:700;color:var(--text);">使用履歴</span>
+      <span style="font-size:11px;color:var(--muted);">過去1ヶ月間</span>
+      <div style="flex:1"></div>
+      <button onclick="clearHistory()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;" onmouseover="this.style.color='var(--error)';this.style.borderColor='var(--error)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">全削除</button>
+      <button onclick="closeHistory()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--muted);cursor:pointer;font-size:18px;font-family:inherit;line-height:1;">✕</button>
+    </div>
+    <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+      <button class="hist-tab-btn active" onclick="switchHistTab('daiko',this)" style="padding:5px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--tag-bg);color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;">代行</button>
+      <button class="hist-tab-btn" onclick="switchHistTab('create',this)" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;">アカウント作成</button>
+      <button class="hist-tab-btn" onclick="switchHistTab('clone',this)" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;">複製</button>
+    </div>
+    <div id="history-list" style="overflow-y:auto;padding:16px 20px;flex:1;"></div>
+  </div>
+</div>
+
+<!-- 利用規約モーダル -->
+<div id="terms-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)closeTerms()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,95vw);max-height:85vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:15px;font-weight:700;color:var(--text);">利用規約</span>
+      <div style="flex:1"></div>
+      <button onclick="closeTerms()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--muted);cursor:pointer;font-size:18px;font-family:inherit;line-height:1;">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:20px 24px;flex:1;font-size:13px;line-height:1.9;color:var(--text);">
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;color:var(--error);margin-bottom:8px;">当サイト及びautocat.jpの禁止事項</div>
+        <ul style="padding-left:20px;color:var(--muted);">
+          <li>autocat.jpの販売を禁ずる</li>
+          <li>autocat.jpに対するDoS、DDoS及び攻撃行為を禁ずる</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px;">許可している行為</div>
+        <ul style="padding-left:20px;color:var(--muted);">
+          <li>このサイトの二次配布</li>
+          <li>このサイトを利用しての金銭等の収益</li>
+        </ul>
+        <div style="margin-top:10px;color:var(--muted);">等は認めています。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  {% if not user %}
+  <section id="month-end-account-nudge" class="month-end-nudge" hidden>
+    <strong>今日はFree無制限デー</strong>
+    <p>無料のサイトアカウントを作成してログインすると、本日中は残り回数を気にせず利用できます。</p>
+    <div class="month-end-actions"><a class="btn btn-primary" href="/account/register?next=/">無料で作成</a><a class="btn btn-ghost" href="/account/login?next=/">ログイン</a></div>
+  </section>
+  {% endif %}
+  <section class="vip-promo" aria-label="VIP版の案内">
+    <div>
+      <div class="vip-promo-kicker">AUTOCAT JP VIP</div>
+      <div class="vip-promo-title">回数を気にせず、もっと細かく設定。</div>
+      <div class="vip-promo-copy">無制限利用・最大5アカウント・ステージやアイテムの詳細指定に対応します。</div>
+      <div class="vip-promo-points">
+        <span class="vip-promo-point">使用回数 無制限</span>
+        <span class="vip-promo-point">作成・複製 最大5個</span>
+        <span class="vip-promo-point">詳細指定を解放</span>
+      </div>
+    </div>
+    <a href="/vip-guide" class="btn btn-primary vip-link vip-promo-action">Freeとの違いを見る →</a>
+  </section>
+  {% if user and not user.is_vip and user.trial_offer_active %}
+  <section id="trial-promo" class="trial-promo" data-expires="{{ user.trial_offer_expires_at }}">
+    <strong>登録後1時間限定：招待1人成立でVIPを1回無料</strong>
+    <p>招待リンクを開いた相手がFree版を1回成功すると、VIP版の実行権が1回付与されます。処理失敗時は消費されません。</p>
+    <span id="trial-countdown" class="trial-countdown">--:--</span>
+    <button class="btn btn-primary" type="button" onclick="toggleInvitation(true)">招待リンクを開く</button>
+  </section>
+  {% endif %}
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('daiko')">引き継ぎコード代行</button>
+    <button class="tab" onclick="switchTab('create')">新規アカウント作成</button>
+    <button class="tab" onclick="switchTab('clone')">垢複製</button>
+  </div>
+
+  <div id="tab-daiko" class="tab-panel active">
+    <div class="card">
+      <div class="card-title">引き継ぎ情報</div>
+      <div class="row-2">
+        <div class="field">
+          <label>引き継ぎコード</label>
+          <input type="text" id="d_transfer_code" placeholder="1a2b3c4d5" maxlength="9" autocomplete="off"
+                 oninput="sanitizeHexInput(this,9,'d_transfer_code_err')" onblur="checkTransferCode(this,'d_transfer_code_err')">
+          <div class="field-error" id="d_transfer_code_err"></div>
+        </div>
+        <div class="field">
+          <label>認証番号</label>
+          <input type="text" id="d_auth_code" placeholder="1234" maxlength="4" autocomplete="off"
+                 oninput="sanitizeDigitsInput(this,4,'d_auth_code_err')" onblur="checkAuthCode(this,'d_auth_code_err')">
+          <div class="field-error" id="d_auth_code_err"></div>
+        </div>
+      </div>
+    </div>
+    <div id="options-daiko"></div>
+    <div id="custom-amounts-daiko"></div>
+    <div class="card">
+      <div class="card-title">選択中の項目</div>
+      <div id="tags-daiko" class="tag-bar"><span class="tag-empty">何も選択されていません</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-daiko" onclick="submitDaiko()" disabled>代行を実行する</button>
+      <button class="btn btn-ghost" onclick="resetAll('daiko')">↺ リセット</button>
+    </div>
+    <div id="result-daiko" class="result-box">
+      <div class="progress-bar"><div class="progress-fill anim" id="prog-daiko"></div></div>
+      <div class="status-text" id="status-daiko">処理中...</div>
+    </div>
+  </div>
+
+  <div id="tab-create" class="tab-panel">
+    <div class="card">
+      <div class="card-title">新規アカウント作成</div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:14px;">Nyanko_newファイルを使って新規アカウントを作成し、選択した内容を適用します。引き継ぎコードは不要です。</p>
+      <div class="field">
+        <label>作成個数</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="count-btn active" onclick="setCount('create',1,this)">1個</button>
+          <button class="count-btn" onclick="setCount('create',2,this)">2個</button>
+        </div>
+      </div>
+    </div>
+    <div id="options-create"></div>
+    <div id="custom-amounts-create"></div>
+    <div class="card">
+      <div class="card-title">選択中の項目</div>
+      <div id="tags-create" class="tag-bar"><span class="tag-empty">何も選択されていません</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-create" onclick="submitCreate()" disabled>アカウントを作成する</button>
+      <button class="btn btn-ghost" onclick="resetAll('create')">↺ リセット</button>
+    </div>
+    <div id="result-create" class="result-box">
+      <div class="progress-bar"><div class="progress-fill anim" id="prog-create"></div></div>
+      <div class="status-text" id="status-create">処理中...</div>
+    </div>
+  </div>
+
+  <div id="tab-clone" class="tab-panel">
+    <div class="card">
+      <div class="card-title">垢複製</div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:14px;">引き継ぎコードでセーブデータを取得し、別アカウントとしてコピーします。元アカウントと複製アカウント両方のコードを表示します。</p>
+      <div class="row-2">
+        <div class="field">
+          <label>引き継ぎコード</label>
+          <input type="text" id="cl_transfer_code" placeholder="1a2b3c4d5" maxlength="9" autocomplete="off"
+                 oninput="sanitizeHexInput(this,9,'cl_transfer_code_err')" onblur="checkTransferCode(this,'cl_transfer_code_err')">
+          <div class="field-error" id="cl_transfer_code_err"></div>
+        </div>
+        <div class="field">
+          <label>認証番号</label>
+          <input type="text" id="cl_auth_code" placeholder="1234" maxlength="4" autocomplete="off"
+                 oninput="sanitizeDigitsInput(this,4,'cl_auth_code_err')" onblur="checkAuthCode(this,'cl_auth_code_err')">
+          <div class="field-error" id="cl_auth_code_err"></div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>複製個数</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="count-btn active" onclick="setCount('clone',1,this)">1個</button>
+          <button class="count-btn" onclick="setCount('clone',2,this)">2個</button>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-clone" onclick="submitClone()" disabled>複製を実行する</button>
+    </div>
+    <div id="result-clone" class="result-box">
+      <div class="progress-bar"><div class="progress-fill anim" id="prog-clone"></div></div>
+      <div class="status-text" id="status-clone">処理中...</div>
+    </div>
+  </div>
+</div>
+
+<div id="sticky-action-bar" class="sticky-action-bar">
+  <button type="button" id="sticky-run-button" class="btn btn-primary" onclick="runCurrentTab()">代行を実行</button>
+</div>
+
+<script>
+const GROUPS = [
+  { key:"s1", label:"アイテム・ステージ系", options:[
+    {l:"猫缶 58000", v:"catfood"},
+    {l:"XP 99999999", v:"xp"},
+    {l:"NP 9999", v:"np"},
+    {l:"にゃんこチケット 999", v:"normal_tickets"},
+    {l:"レアチケット 999", v:"rare_tickets"},
+    {l:"プラチナチケット 20", v:"platinum_tickets"},
+    {l:"レジェンドチケット 10", v:"legend_tickets"},
+    {l:"リーダーシップ 999", v:"leadership"},
+    {l:"バトルアイテム全種 9999", v:"battle_items"},
+    {l:"キャッツアイ全種 999", v:"catseyes"},
+    {l:"ネコビタン全種 999", v:"catamins"},
+    {l:"城素材全種 999", v:"base_materials"},
+    {l:"マタタビ全種 998", v:"matatabi"},
+    {l:"本能玉全種 998", v:"talent_orbs"},
+    {l:"メインステージ(お宝金＆クリア)", v:"main_story_clear"},
+    {l:"メインゾンビステージ全クリア", v:"zombie_clear"},
+    {l:"魔界編全クリア", v:"aku_clear"},
+    {l:"レジェンド全クリア", v:"legend_clear"},
+    {l:"真レジェンド全クリア", v:"true_legend_clear"},
+    {l:"零レジェンド全クリア", v:"zero_legend_clear"},
+    {l:"イベントステージ全クリア", v:"event_clear"},
+    {l:"全ステージ全クリア", v:"all_stage_clear"},
+  ]},
+  { key:"s2", label:"システム・ガマトト系", options:[
+    {l:"ガマトトLv.Max", v:"gamatoto_max"},
+    {l:"ガマトト助手全レジェンド化", v:"gamatoto_helpers"},
+    {l:"オトート全城強化Lv.Max", v:"ototo_max"},
+    {l:"にゃんこ神社Lv.Max", v:"cat_shrine_max"},
+    {l:"全施設 Lv.Max", v:"base_upgrades_max"},
+    {l:"ゴールド会員化", v:"gold_membership"},
+    {l:"編成スロット数最大化", v:"slots_max"},
+    {l:"にゃんこメダル全解放", v:"medals_all"},
+    {l:"チュートリアルスキップ", v:"skip_tutorial"},
+    {l:"ランクアップポップアップ非表示", v:"hide_rank_up"},
+    {l:"敵キャラ図鑑全解放", v:"unlock_enemy_guide"},
+    {l:"プレイ時間 +720時間", v:"add_playtime_720h"},
+  ]},
+  { key:"s3", label:"キャラ系", options:[
+    {l:"全キャラ解放", v:"unlock_all_cats"},
+    {l:"全キャラLv.Max+", v:"max_all_cats_plus"},
+    {l:"全キャラLv.Max", v:"max_all_cats"},
+    {l:"全キャラ最大形態化", v:"true_form_all"},
+    {l:"全キャラ本能解放", v:"talents_all"},
+    {l:"エラーキャラ削除", v:"remove_error_cats"},
+    {l:"指定キャラ解放 ★", v:"unlock_specific"},
+    {l:"指定キャラ削除 ★", v:"remove_specific"},
+    {l:"指定キャラLv.Max+ ★", v:"max_specific"},
+    {l:"指定キャラLv.Max ★", v:"max_specific_2"},
+    {l:"指定キャラ最終形態化 ★", v:"true_form_specific"},
+    {l:"指定キャラLv／＋値指定 ★", v:"level_specific"},
+    {l:"指定キャラ形態指定 ★", v:"form_specific"},
+  ]},
+  { key:"s4", label:"指定個数系", options:[
+    {l:"猫缶 指定", v:"custom_catfood"},
+    {l:"XP 指定", v:"custom_xp"},
+    {l:"NP 指定", v:"custom_np"},
+    {l:"にゃんこチケット 指定", v:"custom_normal_tickets"},
+    {l:"レアチケット 指定", v:"custom_rare_tickets"},
+    {l:"プラチナチケット 指定", v:"custom_platinum_tickets"},
+    {l:"レジェンドチケット 指定", v:"custom_legend_tickets"},
+    {l:"リーダーシップ 指定", v:"custom_leadership"},
+    {l:"バトルアイテム全種 指定", v:"custom_battle_items"},
+    {l:"ネコビタン全種 指定", v:"custom_catamins"},
+    {l:"キャッツアイ全種 指定", v:"custom_catseyes"},
+    {l:"城素材全種 指定", v:"custom_base_materials"},
+    {l:"マタタビ全種 指定", v:"custom_matatabi"},
+    {l:"本能玉全種 指定", v:"custom_talent_orbs"},
+    {l:"全施設 指定", v:"custom_base_upgrades"},
+    {l:"プレイ時間 指定(時間:分)", v:"custom_playtime"},
+  ]},
+];
+
+const CUSTOM_INPUT_DEFS = [
+  { key: "custom_catfood",          label: "猫缶" },
+  { key: "custom_xp",               label: "XP" },
+  { key: "custom_np",               label: "NP" },
+  { key: "custom_normal_tickets",   label: "にゃんこチケット" },
+  { key: "custom_rare_tickets",     label: "レアチケット" },
+  { key: "custom_platinum_tickets", label: "プラチナチケット" },
+  { key: "custom_legend_tickets",   label: "レジェンドチケット" },
+  { key: "custom_leadership",       label: "リーダーシップ" },
+  { key: "custom_battle_items",     label: "バトルアイテム" },
+  { key: "custom_catamins",         label: "ネコビタン" },
+  { key: "custom_catseyes",         label: "キャッツアイ" },
+  { key: "custom_base_materials",   label: "城素材" },
+  { key: "custom_matatabi",         label: "マタタビ" },
+  { key: "custom_talent_orbs",      label: "本能玉" },
+  { key: "custom_base_upgrades",    label: "全施設" },
+];
+
+const NEEDS_CHAR_SET = new Set(["unlock_specific","remove_specific","max_specific","max_specific_2","true_form_specific","level_specific","form_specific"]);
+
+// サーバー側と同じ「時間:分」フォーマット (時間は最大4桁、分は0〜59)
+const PLAYTIME_CLIENT_RE = /^\d{1,4}:([0-5]?\d)$/;
+
+const state = {
+  daiko:  { s1:new Set(), s2:new Set(), s3:new Set(), s4:new Set() },
+  create: { s1:new Set(), s2:new Set(), s3:new Set(), s4:new Set() },
+};
+
+let characterMetadata = null;
+let characterMetadataPromise = null;
+const characterSelectionState = { daiko:new Map(), create:new Map() };
+const characterFormFilter = { daiko:1, create:1 };
+const CHARACTER_RARITIES = ['基本キャラ','EX','レア','激レア','超激レア','伝説レア'];
+const characterRarityFilter = { daiko:'all', create:'all' };
+const characterLevelMode = { daiko:'same', create:'same' };
+const characterBulkLevels = {
+  daiko:{base_level:60, plus_level:0},
+  create:{base_level:60, plus_level:0},
+};
+
+let currentMainTab = 'daiko';
+const FREE_PRESET_STORAGE_KEY = 'autocat_presets_free_v1';
+const VIP_LOCKED_FEATURES = [
+  '使用回数 無制限','作成・複製 最大5個','アカウント種別選択','プリセット 最大10件',
+  'メイン章・ステージ個別指定','イベントステージ個別指定','ステージごとのクリア回数指定','レジェンドマップ詳細指定',
+  'ゾンビ・魔界編詳細指定','地底迷宮のキャラ・勲章指定','キャラ本能の個別設定・無効化','編成1〜20の10枠個別設定',
+  '施設ごとのレベル指定','本能玉の種類・ランク別指定','イベントチケット種類別指定','アイテム種類ごとの個別指定',
+  'ユーザーランク報酬状態変更','キャラ図鑑報酬状態変更','ネコのスクラッチャーリセット','全ミッション詳細クリア'
+];
+let freePresetTargetTab='daiko';
+
+function readFreePreset(){try{const value=JSON.parse(localStorage.getItem(FREE_PRESET_STORAGE_KEY)||'null');return value&&value.version===1?value:null;}catch{return null;}}
+function freePresetCount(tab){return GROUPS.reduce((total,group)=>total+state[tab][group.key].size,0);}
+function captureFreePreset(tab){
+  const inputs={};for(const def of CUSTOM_INPUT_DEFS)inputs[def.key]=document.getElementById(`amt-${tab}-${def.key}`)?.value||'';
+  inputs.custom_playtime=document.getElementById(`amt-${tab}-custom_playtime`)?.value||'';
+  inputs.character_ids=document.getElementById(`char-input-${tab}`)?.value||'';
+  return {version:1,name:(document.getElementById('free-preset-name')?.value||'Freeプリセット').trim().slice(0,40)||'Freeプリセット',saved_at:Date.now(),state:Object.fromEntries(GROUPS.map(group=>[group.key,[...state[tab][group.key]]])),characters:[...characterSelectionState[tab].entries()],character_form:characterFormFilter[tab],character_rarity:characterRarityFilter[tab],character_level_mode:characterLevelMode[tab],character_bulk:characterBulkLevels[tab],inputs};
+}
+function setFreePresetStatus(message,error=false){const el=document.getElementById('free-preset-status');if(el){el.textContent=message;el.style.color=error?'#fecaca':'var(--muted)';}}
+function openFreePreset(tab){freePresetTargetTab=tab;const preset=readFreePreset();document.getElementById('free-preset-name').value=preset?.name||'Freeプリセット1';setFreePresetStatus(preset?`${new Date(preset.saved_at).toLocaleString('ja-JP')}に保存済み`:'まだ登録されていません');document.getElementById('free-preset-modal').style.display='block';document.body.style.overflow='hidden';}
+function closeFreePreset(){document.getElementById('free-preset-modal').style.display='none';document.body.style.overflow='';}
+function saveFreePreset(){if(!freePresetCount(freePresetTargetTab)){setFreePresetStatus('先に保存したい項目を選択してください',true);return;}if(readFreePreset()&&!confirm('保存済みのFreeプリセットを上書きしますか？'))return;try{localStorage.setItem(FREE_PRESET_STORAGE_KEY,JSON.stringify(captureFreePreset(freePresetTargetTab)));setFreePresetStatus('1件のプリセットを保存しました');}catch{setFreePresetStatus('プリセットを保存できませんでした',true);}}
+function deleteFreePreset(){if(!readFreePreset()){setFreePresetStatus('削除するプリセットがありません',true);return;}if(!confirm('Freeプリセットを削除しますか？'))return;localStorage.removeItem(FREE_PRESET_STORAGE_KEY);document.getElementById('free-preset-name').value='Freeプリセット1';setFreePresetStatus('削除しました');}
+function loadFreePresetIntoCurrentTab(){
+  const preset=readFreePreset();if(!preset){setFreePresetStatus('登録済みのプリセットがありません',true);return;}
+  const tab=freePresetTargetTab;
+  for(const group of GROUPS){const allowed=new Set(group.options.map(item=>item.v));state[tab][group.key]=new Set((Array.isArray(preset.state?.[group.key])?preset.state[group.key]:[]).filter(value=>allowed.has(value)));}
+  const characters=Array.isArray(preset.characters)?preset.characters.slice(0,1000):[];characterSelectionState[tab]=new Map(characters.filter(pair=>Array.isArray(pair)&&pair.length===2&&Number.isInteger(Number(pair[0]))).map(([id,item])=>[Number(id),item]));
+  characterFormFilter[tab]=Math.max(1,Math.min(4,Number(preset.character_form)||1));characterRarityFilter[tab]=preset.character_rarity==='all'?'all':Math.max(0,Math.min(5,Number(preset.character_rarity)||0));characterLevelMode[tab]=preset.character_level_mode==='individual'?'individual':'same';characterBulkLevels[tab]={base_level:Math.max(1,Math.min(60,Number(preset.character_bulk?.base_level)||60)),plus_level:Math.max(0,Math.min(90,Number(preset.character_bulk?.plus_level)||0))};
+  buildOptions(tab);const inputs=preset.inputs||{};for(const def of CUSTOM_INPUT_DEFS){const el=document.getElementById(`amt-${tab}-${def.key}`);if(el)el.value=inputs[def.key]??'';}const playtime=document.getElementById(`amt-${tab}-custom_playtime`);if(playtime)playtime.value=inputs.custom_playtime??'';const ids=document.getElementById(`char-input-${tab}`);if(ids)ids.value=inputs.character_ids??'';syncExtraInputs(tab);syncTags(tab);renderSelectedCharacters(tab);closeFreePreset();showTopNotice('Freeプリセットを読み込みました。');
+}
+
+function appendVipLockedCard(container){
+  const card=document.createElement('div');card.className='card vip-locked-card';card.innerHTML=`<div class="card-title" style="color:#fde047">VIP限定機能（Freeでは選択できません）</div><div class="vip-locked-grid">${VIP_LOCKED_FEATURES.map(label=>`<div class="vip-locked-option" role="link" tabindex="0"><span class="vip-lock">鍵</span><span>${label}</span></div>`).join('')}</div><div class="vip-locked-note"><span>VIPにすると、ここに表示されている機能を実際に設定できます。</span><a class="btn btn-ghost vip-link" href="/vip-guide">VIPとの違いを見る</a></div>`;
+  card.querySelectorAll('.vip-locked-option').forEach(item=>{const open=()=>location.assign('/vip-guide#compare');item.addEventListener('click',open);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});});container.appendChild(card);
+}
+
+function updateStickyRunButton() {
+  const sticky=document.getElementById('sticky-run-button'); if(!sticky)return;
+  const source=document.getElementById(`btn-${currentMainTab}`);
+  sticky.textContent=source?.textContent||({daiko:'代行を実行する',create:'アカウントを作成する',clone:'複製を実行する'}[currentMainTab]);
+  sticky.disabled=Boolean(source?.disabled);
+}
+function runCurrentTab() {
+  const source=document.getElementById(`btn-${currentMainTab}`); if(source?.disabled)return;
+  if(currentMainTab==='daiko')submitDaiko(); else if(currentMainTab==='create')submitCreate(); else submitClone();
+  queueMicrotask(updateStickyRunButton);
+}
+function observeRunButtons() {
+  ['daiko','create','clone'].forEach(tab=>{const button=document.getElementById(`btn-${tab}`);if(button)new MutationObserver(updateStickyRunButton).observe(button,{attributes:true,childList:true,characterData:true,subtree:true});});
+  updateStickyRunButton();
+}
+
+function escChar(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function ensureCharacterMetadata() {
+  if (characterMetadata) return characterMetadata;
+  if (!characterMetadataPromise) {
+    characterMetadataPromise = fetch('/api/character_metadata').then(async r => {
+      if (!r.ok) throw new Error('character metadata');
+      const data = await r.json();
+      characterMetadata = data.characters || [];
+      return characterMetadata;
+    }).finally(() => { characterMetadataPromise = null; });
+  }
+  return characterMetadataPromise;
+}
+
+function renderCharacterPanel(tab) {
+  const holder = document.getElementById(`char-holder-${tab}`);
+  if (!holder) return;
+  const oldId = document.getElementById(`char-input-${tab}`)?.value || '';
+  const needsLevel = state[tab].s3.has('level_specific');
+  const form = characterFormFilter[tab];
+  const rarity = characterRarityFilter[tab];
+  holder.innerHTML = `
+    <div class="field" style="margin-bottom:14px;">
+      <label>キャラ番号（従来どおり・カンマ区切り）</label>
+      <input type="text" id="char-input-${tab}" value="${escChar(oldId)}" placeholder="例: 1, 2, 3" oninput="this.value=this.value.replace(/[^0-9,\\s]/g,'')">
+      <div class="char-note">ID指定と名前指定は併用できます</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px;">キャラ名から選択</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${[1,2,3,4].map(n=>`<button type="button" class="count-btn ${form===n?'active':''}" onclick="setCharacterForm('${tab}',${n})">第${n}形態</button>`).join('')}
+      </div>
+      <label>レアリティ絞り込み</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:7px 0 10px;">
+        <button type="button" class="count-btn ${rarity==='all'?'active':''}" onclick="setCharacterRarity('${tab}','all')">すべて</button>
+        ${CHARACTER_RARITIES.map((name,n)=>`<button type="button" class="count-btn ${rarity===n?'active':''}" onclick="setCharacterRarity('${tab}',${n})">${name}</button>`).join('')}
+      </div>
+      <input type="search" id="char-name-search-${tab}" placeholder="キャラ名またはIDで検索" oninput="renderCharacterSearch('${tab}')">
+      <div id="char-name-status-${tab}" class="char-note">キャラ名データを読み込み中...</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <button type="button" class="count-btn" onclick="selectVisibleCharacters('${tab}')">表示中を全選択</button>
+        <button type="button" class="count-btn" onclick="clearVisibleCharacters('${tab}')">表示中を全解除</button>
+      </div>
+      <div id="char-name-results-${tab}" style="max-height:220px;overflow:auto;margin-top:8px;"></div>
+      <div id="char-selected-${tab}" style="margin-top:12px;"></div>
+      ${needsLevel ? `
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <label>レベル指定方法</label>
+          <div style="display:flex;gap:6px;margin:7px 0 10px;">
+            <button type="button" class="count-btn ${characterLevelMode[tab]==='same'?'active':''}" onclick="setCharacterLevelMode('${tab}','same')">一括</button>
+            <button type="button" class="count-btn ${characterLevelMode[tab]==='individual'?'active':''}" onclick="setCharacterLevelMode('${tab}','individual')">個別</button>
+          </div>
+          <div id="char-level-editor-${tab}"></div>
+        </div>` : ''}
+    </div>`;
+  renderSelectedCharacters(tab);
+  ensureCharacterMetadata().then(() => {
+    const status = document.getElementById(`char-name-status-${tab}`);
+    if (status) status.textContent = `第${form}形態を持つキャラのみ表示します`;
+    renderCharacterSearch(tab);
+  }).catch(() => {
+    const status = document.getElementById(`char-name-status-${tab}`);
+    if (status) status.textContent = 'キャラ名データの取得に失敗しました。ID指定は利用できます。';
+  });
+}
+
+function setCharacterForm(tab, form) { characterFormFilter[tab]=form; renderCharacterPanel(tab); }
+function setCharacterRarity(tab, rarity) { characterRarityFilter[tab]=rarity; renderCharacterPanel(tab); }
+function setCharacterLevelMode(tab, mode) { characterLevelMode[tab]=mode; renderCharacterPanel(tab); }
+
+function getFilteredCharacters(tab) {
+  if (!characterMetadata) return [];
+  const q = (document.getElementById(`char-name-search-${tab}`)?.value || '').trim().toLowerCase();
+  const form = characterFormFilter[tab];
+  const rarity = characterRarityFilter[tab];
+  return characterMetadata.filter(c => c.selectable !== false && c.form_count >= form && (rarity === 'all' || c.rarity === rarity) && (!q || c.names.some(n=>n.toLowerCase().includes(q)) || String(c.id)===q));
+}
+
+function supportsCharacterForm(cat, form) {
+  const n = Number(form);
+  return !!cat && cat.selectable !== false && Number.isInteger(n) && n >= 1 && n <= Number(cat.form_count || 1) && !!cat.names?.[n - 1];
+}
+
+function renderCharacterSearch(tab) {
+  const out = document.getElementById(`char-name-results-${tab}`);
+  if (!out || !characterMetadata) return;
+  const form = characterFormFilter[tab];
+  const rows = getFilteredCharacters(tab);
+  const status = document.getElementById(`char-name-status-${tab}`);
+  const rarityLabel = characterRarityFilter[tab] === 'all' ? '全レアリティ' : CHARACTER_RARITIES[characterRarityFilter[tab]];
+  if (status) status.textContent = `${rarityLabel}・第${form}形態：${rows.length}体`;
+  out.innerHTML = rows.map(c => `<button type="button" class="count-btn" style="display:block;width:100%;text-align:left;margin-bottom:4px;" onclick="addCharacterByName('${tab}',${c.id})">No.${c.id} ${escChar(c.names[form-1])}【${escChar(c.rarity_name)}】</button>`).join('') || '<div class="char-note">該当キャラがありません</div>';
+}
+
+function selectVisibleCharacters(tab) {
+  const form = characterFormFilter[tab], bulk = characterBulkLevels[tab];
+  getFilteredCharacters(tab).forEach(cat => { if (supportsCharacterForm(cat, form)) characterSelectionState[tab].set(cat.id,{id:cat.id,form,names:cat.names,rarity:cat.rarity,rarity_name:cat.rarity_name,base_level:bulk.base_level,plus_level:bulk.plus_level}); });
+  renderSelectedCharacters(tab);
+}
+function clearVisibleCharacters(tab) {
+  getFilteredCharacters(tab).forEach(cat => characterSelectionState[tab].delete(cat.id));
+  renderSelectedCharacters(tab);
+}
+
+function addCharacterByName(tab, id) {
+  const cat = characterMetadata?.find(c=>c.id===id); if (!cat) return;
+  const form = characterFormFilter[tab];
+  if (!supportsCharacterForm(cat, form)) return;
+  const bulk = characterBulkLevels[tab];
+  characterSelectionState[tab].set(id,{id,form,names:cat.names,rarity:cat.rarity,rarity_name:cat.rarity_name,base_level:bulk.base_level,plus_level:bulk.plus_level});
+  renderSelectedCharacters(tab);
+}
+function removeCharacterByName(tab,id) { characterSelectionState[tab].delete(id); renderSelectedCharacters(tab); }
+function updateCharacterLevel(tab,id,key,value) {
+  const item=characterSelectionState[tab].get(id); if (!item) return;
+  item[key]=key==='base_level'?Math.max(1,Math.min(60,parseInt(value)||1)):Math.max(0,Math.min(90,parseInt(value)||0));
+}
+function updateCharacterBulk(tab,key,value) {
+  const v=key==='base_level'?Math.max(1,Math.min(60,parseInt(value)||1)):Math.max(0,Math.min(90,parseInt(value)||0));
+  characterBulkLevels[tab][key]=v;
+  characterSelectionState[tab].forEach(item=>item[key]=v);
+}
+function renderSelectedCharacters(tab) {
+  const out=document.getElementById(`char-selected-${tab}`); if (!out) return;
+  const items=[...characterSelectionState[tab].values()];
+  out.innerHTML = items.length ? `<div class="char-note" style="margin-bottom:6px;">選択中 ${items.length}体</div>` + items.map(item=>`<div style="display:flex;align-items:center;gap:7px;padding:6px;border-bottom:1px solid var(--border);"><span style="flex:1;">No.${item.id} ${escChar(item.names[item.form-1])}（第${item.form}形態・${escChar(item.rarity_name||'不明')}）</span>${characterLevelMode[tab]==='individual'&&state[tab].s3.has('level_specific')?`<input type="number" min="1" max="60" value="${item.base_level}" style="width:70px;" aria-label="レベル" onchange="updateCharacterLevel('${tab}',${item.id},'base_level',this.value)"><span>＋</span><input type="number" min="0" max="90" value="${item.plus_level}" style="width:70px;" aria-label="プラス値" onchange="updateCharacterLevel('${tab}',${item.id},'plus_level',this.value)">`:''}<button type="button" class="count-btn" onclick="removeCharacterByName('${tab}',${item.id})">削除</button></div>`).join('') : '<div class="char-note">名前で選択したキャラはまだありません</div>';
+  const editor=document.getElementById(`char-level-editor-${tab}`);
+  if (editor) editor.innerHTML = characterLevelMode[tab]==='same' ? `<div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;"><label>レベル<input type="number" min="1" max="60" value="${characterBulkLevels[tab].base_level}" onchange="updateCharacterBulk('${tab}','base_level',this.value)"></label><label>プラス値<input type="number" min="0" max="90" value="${characterBulkLevels[tab].plus_level}" onchange="updateCharacterBulk('${tab}','plus_level',this.value)"></label></div>` : '<div class="char-note">選択済みキャラごとに値を入力できます</div>';
+}
+
+function buildOptions(tab) {
+  const container = document.getElementById(`options-${tab}`);
+  container.innerHTML = '';
+  const actions=document.createElement('div');actions.className='free-option-actions';actions.innerHTML='<button type="button" class="btn btn-ghost">プリセット登録／読込（1件）</button>';actions.querySelector('button').addEventListener('click',()=>openFreePreset(tab));container.appendChild(actions);
+  for (const g of GROUPS) {
+    if (g.key === 's4') continue;
+    const card = document.createElement('div');
+    card.className = 'card';
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = g.label;
+    card.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'option-grid';
+    for (const opt of g.options) {
+      const el = document.createElement('label');
+      el.className = state[tab][g.key].has(opt.v) ? 'opt checked' : 'opt';
+      el.dataset.v = opt.v;
+      el.innerHTML = `<span class="checkmark"></span><span class="opt-label">${opt.l}</span>`;
+      el.addEventListener('click', () => toggle(tab, g.key, opt.v, el));
+      grid.appendChild(el);
+    }
+    card.appendChild(grid);
+    if (g.key === 's3') {
+      const h = document.createElement('div'); h.id = `char-holder-${tab}`; h.style.marginTop='10px';
+      card.appendChild(h);
+    }
+    container.appendChild(card);
+  }
+
+  const s4Group = GROUPS.find(g => g.key === 's4');
+  const s4Card = document.createElement('div');
+  s4Card.className = 'card';
+  const s4Title = document.createElement('div');
+  s4Title.className = 'card-title';
+  s4Title.textContent = s4Group.label;
+  s4Card.appendChild(s4Title);
+  const s4Grid = document.createElement('div');
+  s4Grid.className = 'option-grid';
+  for (const opt of s4Group.options) {
+    const el = document.createElement('label');
+    el.className = state[tab].s4.has(opt.v) ? 'opt checked' : 'opt';
+    el.dataset.v = opt.v;
+    el.innerHTML = `<span class="checkmark"></span><span class="opt-label">${opt.l}</span>`;
+    el.addEventListener('click', () => toggle(tab, 's4', opt.v, el));
+    s4Grid.appendChild(el);
+  }
+  s4Card.appendChild(s4Grid);
+
+  const amtGrid = document.createElement('div');
+  amtGrid.className = 'custom-inputs-grid';
+  amtGrid.id = `custom-amt-grid-${tab}`;
+  amtGrid.style.marginTop = '14px';
+  for (const def of CUSTOM_INPUT_DEFS) {
+    const row = document.createElement('div');
+    row.className = 'custom-input-row';
+    row.id = `custom-row-${tab}-${def.key}`;
+    row.style.display = 'none';
+    row.innerHTML = `<label>${def.label} 個数</label><input type="number" id="amt-${tab}-${def.key}" placeholder="例: 9999" min="0">`;
+    amtGrid.appendChild(row);
+  }
+
+  // プレイ時間(絶対値指定)専用の入力行。「時間:分」以外の文字は入力段階で除去する。
+  const ptRow = document.createElement('div');
+  ptRow.className = 'custom-input-row';
+  ptRow.id = `custom-row-${tab}-custom_playtime`;
+  ptRow.style.display = 'none';
+  ptRow.innerHTML = `
+    <label>プレイ時間（時間:分）</label>
+    <input type="text" id="amt-${tab}-custom_playtime" placeholder="例: 1200:30" autocomplete="off"
+           oninput="sanitizePlaytimeInput(this,'playtime-err-${tab}')" onblur="checkPlaytime(this,'playtime-err-${tab}')">
+    <div class="field-error" id="playtime-err-${tab}"></div>`;
+  amtGrid.appendChild(ptRow);
+
+  s4Card.appendChild(amtGrid);
+  container.appendChild(s4Card);
+  appendVipLockedCard(container);
+
+  syncExtraInputs(tab);
+  syncTags(tab);
+}
+
+function toggle(tab, gkey, val, el) {
+  const set = state[tab][gkey];
+  if (set.has(val)) { set.delete(val); el.classList.remove('checked'); }
+  else              { set.add(val);    el.classList.add('checked'); }
+  syncExtraInputs(tab);
+  syncTags(tab);
+}
+
+function syncExtraInputs(tab) {
+  const s3 = state[tab].s3;
+  const s4 = state[tab].s4;
+  const needsChar = [...s3].some(v => NEEDS_CHAR_SET.has(v));
+  const ch = document.getElementById(`char-holder-${tab}`);
+  if (ch) {
+    if (needsChar) renderCharacterPanel(tab);
+    else ch.innerHTML = '';
+  }
+
+  for (const def of CUSTOM_INPUT_DEFS) {
+    const row = document.getElementById(`custom-row-${tab}-${def.key}`);
+    if (row) row.style.display = s4.has(def.key) ? 'flex' : 'none';
+  }
+  const ptRow = document.getElementById(`custom-row-${tab}-custom_playtime`);
+  if (ptRow) ptRow.style.display = s4.has('custom_playtime') ? 'flex' : 'none';
+}
+
+function syncTags(tab) {
+  const bar = document.getElementById(`tags-${tab}`);
+  const tags = [];
+  for (const g of GROUPS)
+    for (const v of state[tab][g.key]) {
+      const o = g.options.find(x => x.v === v);
+      if (o) tags.push(o.l);
+    }
+  bar.innerHTML = tags.length
+    ? tags.map(t => `<span class="tag">${t}</span>`).join('')
+    : '<span class="tag-empty">何も選択されていません</span>';
+}
+
+function resetAll(tab) {
+  for (const g of GROUPS) state[tab][g.key].clear();
+  characterSelectionState[tab].clear();
+  buildOptions(tab);
+  const r = document.getElementById(`result-${tab}`);
+  r.classList.remove('show','success','error-box');
+}
+
+function switchTab(tab) {
+  currentMainTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['daiko','create','clone'][i]===tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  updateStickyRunButton();
+}
+
+// ── 入力段階でのサニタイズ / バリデーション ──
+
+// 16進数(0-9,a-f,A-F)以外を即座に除去し、指定桁数を超えたら切り詰める(引き継ぎコード用)
+function sanitizeHexInput(el, maxLen, errId) {
+  el.value = el.value.replace(/[^0-9a-fA-F]/g, '').slice(0, maxLen);
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = '';
+}
+
+// 数字(0-9)以外を即座に除去し、指定桁数を超えたら切り詰める(認証番号用)
+function sanitizeDigitsInput(el, maxLen, errId) {
+  el.value = el.value.replace(/[^0-9]/g, '').slice(0, maxLen);
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = '';
+}
+
+function checkTransferCode(el, errId) {
+  const errEl = document.getElementById(errId);
+  if (!errEl) return true;
+  if (el.value && !/^[0-9a-fA-F]{9}$/.test(el.value)) {
+    errEl.textContent = '引き継ぎコードは9桁の16進数(0-9,a-f)で入力してください';
+    return false;
+  }
+  errEl.textContent = '';
+  return true;
+}
+
+function checkAuthCode(el, errId) {
+  const errEl = document.getElementById(errId);
+  if (!errEl) return true;
+  if (el.value && !/^\d{4}$/.test(el.value)) {
+    errEl.textContent = '認証番号は4桁の数字(0-9)で入力してください';
+    return false;
+  }
+  errEl.textContent = '';
+  return true;
+}
+
+// 数字とコロン以外を除去し、コロンは1つまでに制限。時間は4桁・分は2桁まで。
+function sanitizePlaytimeInput(el, errId) {
+  let v = el.value.replace(/[^0-9:]/g, '');
+  const firstColon = v.indexOf(':');
+  if (firstColon !== -1) {
+    const head = v.slice(0, firstColon).slice(0, 4);
+    const tail = v.slice(firstColon + 1).replace(/:/g, '').slice(0, 2);
+    v = head + ':' + tail;
+  } else {
+    v = v.slice(0, 4);
+  }
+  el.value = v;
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = '';
+}
+
+function checkPlaytime(el, errId) {
+  const errEl = document.getElementById(errId);
+  if (!errEl) return true;
+  if (el.value && !PLAYTIME_CLIENT_RE.test(el.value)) {
+    errEl.textContent = '「時間:分」の形式で入力してください（例: 1200:30、分は0〜59）';
+    return false;
+  }
+  errEl.textContent = '';
+  return true;
+}
+
+function collectPayload(tab) {
+  const selected = {};
+  for (const g of GROUPS) selected[g.key] = [...state[tab][g.key]];
+  const charEl = document.getElementById(`char-input-${tab}`);
+  const char_list = charEl ? charEl.value.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const custom_amounts = {};
+  for (const def of CUSTOM_INPUT_DEFS) {
+    const el = document.getElementById(`amt-${tab}-${def.key}`);
+    custom_amounts[def.key] = el ? (parseInt(el.value) || 0) : 0;
+  }
+  const ptEl = document.getElementById(`amt-${tab}-custom_playtime`);
+  const custom_playtime = ptEl ? ptEl.value.trim() : "";
+  const character_settings = [...characterSelectionState[tab].values()]
+    .filter(item => supportsCharacterForm(characterMetadata?.find(c=>c.id===item.id), item.form))
+    .map(({id,form,base_level,plus_level})=>({id,form,base_level,plus_level}));
+  return { selected, char_list, character_settings, ...custom_amounts, custom_playtime };
+}
+
+// 送信前の最終チェック。不正なら理由を返し、送信自体を弾く。
+function validateBeforeSubmit(tab, { requireCodes } = {}) {
+  if (requireCodes) {
+    const prefix = tab === 'clone' ? 'cl' : 'd';
+    const tcEl = document.getElementById(`${prefix}_transfer_code`);
+    const acEl = document.getElementById(`${prefix}_auth_code`);
+    const tcOk = checkTransferCode(tcEl, `${prefix}_transfer_code_err`);
+    const acOk = checkAuthCode(acEl, `${prefix}_auth_code_err`);
+    if (!tcEl.value || !acEl.value) {
+      return '引き継ぎコードと認証番号を入力してください';
+    }
+    if (!tcOk) return '引き継ぎコードは9桁の16進数（0-9,a-f）で入力してください';
+    if (!acOk) return '認証番号は4桁の数字（0-9）で入力してください';
+  }
+  if (state[tab] && state[tab].s4 && state[tab].s4.has('custom_playtime')) {
+    const ptEl = document.getElementById(`amt-${tab}-custom_playtime`);
+    const ok = checkPlaytime(ptEl, `playtime-err-${tab}`);
+    if (!ptEl.value) return 'プレイ時間（時間:分）を入力してください';
+    if (!ok) return 'プレイ時間は「時間:分」の形式で入力してください（例: 1200:30）';
+  }
+  return null;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, {...options, signal:controller.signal}); }
+  finally { clearTimeout(timer); }
+}
+
+let browserFingerprintPromise = null;
+let freeQuotaLoaded = false;
+let freeQuotaCanUse = false;
+let noticeTimer = null;
+
+function fallbackFingerprintHash(value) {
+  const seeds = [2166136261,2654435761,2246822519,3266489917,668265263,374761393,1274126177,42595009];
+  return seeds.map(seed => {
+    let h = seed >>> 0;
+    for (let i=0;i<value.length;i++) {
+      h ^= value.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(16).padStart(8,'0');
+  }).join('');
+}
+
+async function getBrowserFingerprint() {
+  if (browserFingerprintPromise) return browserFingerprintPromise;
+  browserFingerprintPromise = (async () => {
+    let installId = '';
+    try {
+      installId = localStorage.getItem('autocat_install_id_v1') || '';
+      if (!/^[0-9a-f]{32}$/.test(installId)) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        installId = [...bytes].map(v=>v.toString(16).padStart(2,'0')).join('');
+        localStorage.setItem('autocat_install_id_v1', installId);
+      }
+    } catch {
+      installId = 'storage-unavailable';
+    }
+
+    let canvasSignature = '';
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width=240; canvas.height=60;
+      const ctx=canvas.getContext('2d');
+      ctx.textBaseline='top';ctx.font='16px Arial';ctx.fillStyle='#38bdf8';
+      ctx.fillRect(3,3,80,24);ctx.fillStyle='#18181f';ctx.fillText('autocat.jp 猫 2026',7,7);
+      canvasSignature=canvas.toDataURL();
+    } catch {}
+
+    let webglSignature = '';
+    try {
+      const canvas=document.createElement('canvas');
+      const gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');
+      if (gl) {
+        const ext=gl.getExtension('WEBGL_debug_renderer_info');
+        webglSignature=[
+          gl.getParameter(gl.VERSION),
+          gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
+          ext?gl.getParameter(ext.UNMASKED_VENDOR_WEBGL):'',
+          ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'',
+        ].join('|');
+      }
+    } catch {}
+
+    const width=Math.max(screen.width||0,screen.height||0);
+    const height=Math.min(screen.width||0,screen.height||0);
+    const signals = [
+      installId,navigator.userAgent,navigator.platform,navigator.language,
+      (navigator.languages||[]).join(','),navigator.hardwareConcurrency||0,
+      navigator.deviceMemory||0,navigator.maxTouchPoints||0,
+      width,height,screen.colorDepth||0,screen.pixelDepth||0,
+      Intl.DateTimeFormat().resolvedOptions().timeZone||'',
+      new Date().getTimezoneOffset(),canvasSignature,webglSignature,
+    ].join('||');
+    if (crypto.subtle && typeof TextEncoder !== 'undefined') {
+      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(signals));
+      return [...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
+    }
+    return fallbackFingerprintHash(signals);
+  })();
+  return browserFingerprintPromise;
+}
+
+function positionTopPanels() {
+  const header=document.getElementById('site-header');
+  if (!header) return;
+  const top=Math.max(0,header.getBoundingClientRect().bottom);
+  const drawer=document.getElementById('invite-drawer');
+  const notice=document.getElementById('top-notice');
+  if (drawer) drawer.style.top=`${top}px`;
+  if (notice) notice.style.top=`${top}px`;
+}
+
+function showTopNotice(message, type='success') {
+  const el=document.getElementById('top-notice');
+  if (!el) return;
+  positionTopPanels();
+  el.textContent=message;
+  el.classList.toggle('error',type==='error');
+  el.classList.add('show');
+  clearTimeout(noticeTimer);
+  noticeTimer=setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+function applyQuotaButtonState() {
+  for (const tab of ['daiko','create','clone']) {
+    const button=document.getElementById(`btn-${tab}`);
+    if (button && button.dataset.running!=='1') {
+      button.disabled=!freeQuotaLoaded||!freeQuotaCanUse;
+    }
+  }
+  updateStickyRunButton();
+}
+
+function applyFreeStatus(data, {notify=true}={}) {
+  freeQuotaLoaded=true;
+  freeQuotaCanUse=Boolean(data.unlimited)||Number(data.remaining)>0;
+  const remaining=document.getElementById('remaining-count-num');
+  const suffix=document.getElementById('remaining-count-suffix');
+  const weekly=document.getElementById('weekly-count-num');
+  if (remaining) remaining.textContent=Number(data.banked_remaining||0).toLocaleString('ja-JP');
+  if (suffix) suffix.textContent='回';
+  if (weekly) weekly.textContent=Number(data.weekly_remaining||0).toLocaleString('ja-JP');
+  const monthEndNudge=document.getElementById('month-end-account-nudge');
+  if(monthEndNudge)monthEndNudge.hidden=!Boolean(data.month_end_account_required);
+  applyQuotaButtonState();
+  if (data.trial?.claimed && Number(data.trial?.uses_remaining)>0) {
+    const seen=sessionStorage.getItem('autocat_trial_vip_seen_v2');
+    if(!seen){sessionStorage.setItem('autocat_trial_vip_seen_v2','1');showTopNotice('招待成立によりVIP版を1回無料で実行できます。VIPページへ移動します！');setTimeout(()=>location.assign('/vip'),1200);}
+  } else if (data.trial && !data.trial.offer_active) {
+    const trial=document.getElementById('trial-promo');if(trial)trial.hidden=true;
+  }
+  try {
+    const wasPending=localStorage.getItem('autocat_invitation_pending_v1')==='1';
+    if (data.invitation_pending) localStorage.setItem('autocat_invitation_pending_v1','1');
+    else if (wasPending) {
+      localStorage.removeItem('autocat_invitation_pending_v1');
+      showTopNotice('招待が成立しました。合計上限20回の範囲で、招待者に3回・あなたに2回付与されました！');
+    }
+  } catch {}
+  if (notify && (data.weekly_reset || data.unlimited_awarded)) {
+    const weeklyGrant=Number(data.weekly_grant||0);
+    showTopNotice(data.unlimited_awarded
+      ? 'サイトアカウント特典により、本日はFree版を無制限で利用できます！'
+      : weeklyGrant>0
+        ? `今週のFree利用枠を${weeklyGrant}回付与しました。合計上限は20回です。`
+        : '残り回数が上限20回のため、今週の追加付与はありません。');
+  }
+}
+
+function updateTrialCountdown(){const promo=document.getElementById('trial-promo'),out=document.getElementById('trial-countdown');if(!promo||!out)return;const remaining=Math.max(0,Math.floor(Number(promo.dataset.expires)*1000-Date.now()));if(!remaining){promo.hidden=true;return;}const total=Math.ceil(remaining/1000);out.textContent=`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}
+
+async function fetchFreeStatus(options={}) {
+  try {
+    const fingerprint=await getBrowserFingerprint();
+    const res=await fetchWithTimeout('/api/free/status',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fingerprint}),
+    },15000);
+    const data=await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error||'残り回数を確認できませんでした');
+    applyFreeStatus(data,options);
+    return data;
+  } catch (error) {
+    if (!freeQuotaLoaded) {
+      const remaining=document.getElementById('remaining-count-num');
+      if (remaining) remaining.textContent='取得失敗';
+      applyQuotaButtonState();
+    }
+    return null;
+  }
+}
+
+async function loadInvitationLink() {
+  const input=document.getElementById('invitation-link');
+  const copyButton=document.getElementById('copy-invitation-button');
+  const message=document.getElementById('invitation-message');
+  if (input) input.value='読み込み中...';
+  if (copyButton) copyButton.disabled=true;
+  try {
+    const fingerprint=await getBrowserFingerprint();
+    const res=await fetchWithTimeout('/api/free/invitation',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fingerprint}),
+    },15000);
+    const data=await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error||'招待リンクを発行できませんでした');
+    if (input) input.value=data.url;
+    if (copyButton) copyButton.disabled=false;
+    if (message) {
+      const remaining=Number.isInteger(data.daily_invite_remaining)?` 本日はあと${data.daily_invite_remaining}人招待できます。`:'';
+      message.textContent=`招待された人が無料版を1回成功させると、招待者に3回・利用者に2回付与されます。招待成立は1日2人・月10人、受取は1日1人・月3人、週間無料枠と招待報酬の合計上限は20回です。${remaining}`;
+    }
+    applyFreeStatus(data,{notify:false});
+    try { localStorage.setItem('autocat_invitation_pending_v1','1'); } catch {}
+  } catch (error) {
+    if (input) input.value='発行できませんでした';
+    if (message) message.textContent=error.message;
+  }
+}
+
+async function toggleInvitation(force) {
+  const drawer=document.getElementById('invite-drawer');
+  if (!drawer) return;
+  const open=typeof force==='boolean'?force:!drawer.classList.contains('open');
+  positionTopPanels();
+  drawer.classList.toggle('open',open);
+  drawer.setAttribute('aria-hidden',open?'false':'true');
+  if (open) await loadInvitationLink();
+}
+
+async function copyInvitationLink() {
+  const input=document.getElementById('invitation-link');
+  if (!input||!/^https:\/\//.test(input.value)) return;
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    input.select();document.execCommand('copy');
+  }
+  showTopNotice('招待リンクをコピーしました。');
+}
+
+async function redeemInvitationFromUrl() {
+  const params=new URLSearchParams(location.search);
+  const code=params.get('code')||'';
+  if (!code) return;
+  if (!/^[A-Za-z0-9]{30}$/.test(code)) {
+    showTopNotice('招待コードの形式が不正です。','error');
+    history.replaceState(null,'',location.pathname+location.hash);
+    return;
+  }
+  try {
+    const fingerprint=await getBrowserFingerprint();
+    const res=await fetchWithTimeout('/api/free/invitation/redeem',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,fingerprint}),
+    },15000);
+    const data=await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error||'招待報酬を受け取れませんでした');
+    applyFreeStatus(data,{notify:false});
+    showTopNotice('招待を仮登録しました。無料版の代行・作成・複製を1回成功すると、招待者に3回・あなたに2回付与されます。');
+  } catch (error) {
+    showTopNotice(error.message,'error');
+  } finally {
+    history.replaceState(null,'',location.pathname+location.hash);
+  }
+}
+
+async function initialiseFreeUsage() {
+  positionTopPanels();
+  await fetchFreeStatus({notify:true});
+  await redeemInvitationFromUrl();
+}
+
+window.addEventListener('resize',positionTopPanels);
+
+function generateOperationId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const values = new Uint8Array(30);
+  crypto.getRandomValues(values);
+  return [...values].map(v => chars[v % chars.length]).join('');
+}
+
+async function submitDaiko() {
+  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
+  const err = validateBeforeSubmit('daiko', { requireCodes: true });
+  if (err) { alert(err); return; }
+  const tc = document.getElementById('d_transfer_code').value.trim();
+  const ac = document.getElementById('d_auth_code').value.trim();
+  const btn = document.getElementById('btn-daiko');
+  btn.dataset.running = '1';
+  btn.disabled = true; btn.textContent = '認証中...';
+  try {
+    const fingerprint = await getBrowserFingerprint();
+    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
+    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
+    const { api_key } = await keyRes.json();
+    const operation_id = generateOperationId();
+    const payload = { ...collectPayload('daiko'), transfer_code: tc, auth_code: ac, api_key, operation_id, fingerprint };
+    await startJob('daiko', '/api/run_daiko', payload, { in_tc: tc, in_ac: ac, operation_id });
+  } catch (e) {
+    delete btn.dataset.running;
+    btn.textContent = '代行を実行する'; applyQuotaButtonState();
+    alert('エラーが発生しました');
+  }
+}
+
+async function submitCreate() {
+  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
+  const err = validateBeforeSubmit('create', { requireCodes: false });
+  if (err) { alert(err); return; }
+  const btn = document.getElementById('btn-create');
+  btn.dataset.running = '1';
+  btn.disabled = true; btn.textContent = '認証中...';
+  try {
+    const fingerprint = await getBrowserFingerprint();
+    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
+    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
+    const { api_key } = await keyRes.json();
+    const count = countState.create;
+    const payload = { ...collectPayload('create'), count, api_key, fingerprint };
+    await startJob('create', '/api/run_create', payload);
+  } catch (e) {
+    delete btn.dataset.running;
+    btn.textContent = 'アカウントを作成する'; applyQuotaButtonState();
+    alert('エラーが発生しました');
+  }
+}
+
+async function submitClone() {
+  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
+  const err = validateBeforeSubmit('clone', { requireCodes: true });
+  if (err) { alert(err); return; }
+  const tc = document.getElementById('cl_transfer_code').value.trim();
+  const ac = document.getElementById('cl_auth_code').value.trim();
+  const btn = document.getElementById('btn-clone');
+  btn.dataset.running = '1';
+  btn.disabled = true; btn.textContent = '認証中...';
+  try {
+    const fingerprint = await getBrowserFingerprint();
+    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
+    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
+    const { api_key } = await keyRes.json();
+    const count = countState.clone;
+    const operation_id = generateOperationId();
+    await startJob('clone', '/api/run_clone', { transfer_code: tc, auth_code: ac, count, api_key, operation_id, fingerprint }, { in_tc: tc, in_ac: ac, operation_id });
+  } catch (e) {
+    delete btn.dataset.running;
+    btn.textContent = '複製を実行する'; applyQuotaButtonState();
+    alert('エラーが発生しました');
+  }
+}
+
+const ACTIVE_JOB_KEY_PREFIX = 'autocat_active_job_';
+
+async function startJob(tab, url, payload, extra = {}, resumeJobId = null, resumeJobToken = null) {
+  const btn = document.getElementById(`btn-${tab}`);
+  btn.dataset.running = '1';
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+  const box = document.getElementById(`result-${tab}`);
+  box.className = 'result-box show';
+  box.innerHTML = `
+    <div class="progress-bar"><div class="progress-fill anim" id="prog-${tab}"></div></div>
+    <div class="status-text" id="status-${tab}">処理を開始しています...</div>`;
+
+  const resetBtn = () => {
+    delete btn.dataset.running;
+    btn.textContent = tab==='daiko' ? '代行を実行する' : tab==='create' ? 'アカウントを作成する' : '複製を実行する';
+    applyQuotaButtonState();
+  };
+
+  const showStartError = message => {
+    box.className = 'result-box show error-box';
+    box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">処理を開始できませんでした</div><div class="error-msg">${escChar(message)}</div>`;
+    resetBtn();
+  };
+
+  let job_id = resumeJobId;
+  let jobToken = resumeJobToken;
+  if (!job_id) {
+    let res;
+    try {
+      res = await fetchWithTimeout(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}, 60000);
+    } catch (e) {
+      showStartError(e?.name === 'AbortError' ? '開始要求が60秒以内に完了しませんでした。開始済みの可能性があるため、すぐ再実行せず管理者へ確認してください。' : '開始要求の通信に失敗しました。');
+      fetchFreeStatus({notify:false});
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      box.className = 'result-box show error-box';
+      box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">エラー</div><div class="error-msg">${escChar(err.error || '処理を開始できませんでした')}</div>`;
+      await fetchFreeStatus({notify:false});
+      resetBtn();
+      return;
+    }
+    ({job_id, job_token:jobToken} = await res.json());
+    fetchFreeStatus({notify:false});
+  } else {
+    const st = document.getElementById(`status-${tab}`);
+    if (st) st.textContent = '前回の処理状況を復元中...';
+  }
+  if (!job_id) { showStartError('ジョブ番号を取得できませんでした。'); return; }
+  let operationId = extra.operation_id || null;
+  localStorage.setItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`, JSON.stringify({job_id, job_token:jobToken, extra, saved_at: Date.now()}));
+
+  let missCount = 0;
+  let pollBusy = false;
+  const pollingStartedAt = Date.now();
+  const maxPollingMs = tab === 'clone' ? 31 * 60 * 1000 : 11 * 60 * 1000;
+  const showPollingError = async message => {
+    clearInterval(iv);
+    box.className = 'result-box show error-box';
+    box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">状態確認エラー</div><div class="error-msg">${escChar(message)}</div>`;
+    await fetchFreeStatus({notify:false});
+    resetBtn();
+  };
+  const iv = setInterval(async () => {
+    if (pollBusy) return;
+    if (Date.now() - pollingStartedAt > maxPollingMs) {
+      showPollingError('最大待機時間を超えました。引き継ぎ取得後の可能性があるため、すぐ再実行せず管理者へ確認してください。');
+      return;
+    }
+    pollBusy = true;
+    let job;
+    try {
+      const headers = jobToken ? {'X-Job-Token': jobToken} : {};
+      const r = await fetchWithTimeout(`/api/job/${job_id}`, {headers}, 12000);
+      if (!r.ok) {
+        if (r.status === 403 || r.status === 404) {
+          localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
+          pollBusy = false;
+          showPollingError(r.status === 403
+            ? 'このブラウザでは処理結果を確認できません。処理自体は継続している可能性があるため、すぐ再実行しないでください。'
+            : 'サーバー再起動などで処理結果を確認できません。引き継ぎ取得後の可能性があるため、すぐ再実行しないでください。');
+          return;
+        }
+        missCount++;
+        pollBusy = false;
+        if (missCount > 5) showPollingError(r.status === 404 ? 'サーバー再起動などで処理結果を確認できません。引き継ぎ取得後の可能性があるため、すぐ再実行しないでください。' : '処理状況を確認できません。通信を確認して再度お試しください。');
+        return;
+      }
+      job = await r.json();
+    } catch {
+      missCount++;
+      pollBusy = false;
+      if (missCount > 5) showPollingError('処理状況の通信が連続して失敗しました。通信を確認してください。');
+      return;
+    }
+    pollBusy = false;
+    missCount = 0;
+    operationId = operationId || job.operation_id || null;
+    const st = document.getElementById(`status-${tab}`);
+    if (st) st.textContent = job.log || '処理中...';
+
+    if (job.status === 'done') {
+      clearInterval(iv);
+      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
+      box.className = 'result-box show success';
+      const warningHtml = job.warning
+        ? `<div style="color:#b7791f;font-size:12px;margin-bottom:12px;">${escChar(job.warning)}</div>`
+        : '';
+
+      if (tab === 'clone') {
+        const copies = job.copies || [{ tc: job.copy_transfer_code, ac: job.copy_auth_code }];
+        let copiesHtml = copies.map((c, i) => `
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">${copies.length > 1 ? `コピーアカウント ${i+1}` : 'コピーアカウント'}</div>
+          <div class="code-display" style="margin-bottom:${i < copies.length-1 ? '16' : '0'}px;">
+            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${c.tc||'—'}<button class="copy-btn" onclick="copyText('${c.tc}',this)">コピー</button></div></div>
+            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${c.ac||'—'}<button class="copy-btn" onclick="copyText('${c.ac}',this)">コピー</button></div></div>
+          </div>`).join('');
+        box.innerHTML = `
+          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">複製完了！</div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">元アカウント</div>
+          <div class="code-display" style="margin-bottom:16px;">
+            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.orig_transfer_code||'—'}<button class="copy-btn" onclick="copyText('${job.orig_transfer_code}',this)">コピー</button></div></div>
+            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.orig_auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.orig_auth_code}',this)">コピー</button></div></div>
+          </div>
+          ${copiesHtml}`;
+        addHistory({ type: 'clone', in_tc: extra.in_tc, in_ac: extra.in_ac, orig_tc: job.orig_transfer_code, orig_ac: job.orig_auth_code, copies });
+
+      } else if (tab === 'create') {
+        const accounts = job.accounts || [{ tc: job.transfer_code, ac: job.auth_code }];
+        const applied = job.applied || [];
+        let accountsHtml = accounts.map((acc, i) => `
+          ${accounts.length > 1 ? `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">アカウント ${i+1}</div>` : ''}
+          <div class="code-display" style="margin-bottom:${i < accounts.length-1 ? '14' : '0'}px;">
+            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${acc.tc||'—'}<button class="copy-btn" onclick="copyText('${acc.tc}',this)">コピー</button></div></div>
+            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${acc.ac||'—'}<button class="copy-btn" onclick="copyText('${acc.ac}',this)">コピー</button></div></div>
+          </div>`).join('');
+        box.innerHTML = `
+          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">完了しました！</div>
+          ${accountsHtml}
+          ${applied.length ? `<div style="font-size:11px;color:var(--muted);margin-top:12px;margin-bottom:6px;">適用済み項目</div><div class="applied-list">${applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
+        addHistory({ type: 'create', accounts, applied });
+
+      } else {
+        const applied = job.applied || [];
+        box.innerHTML = `
+          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">完了しました！</div>
+          ${warningHtml}
+          <div class="code-display">
+            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.transfer_code||'—'}<button class="copy-btn" onclick="copyText('${job.transfer_code}',this)">コピー</button></div></div>
+            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.auth_code}',this)">コピー</button></div></div>
+          </div>
+          ${applied.length ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">適用済み項目</div><div class="applied-list">${applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
+        addHistory({ type: 'daiko', in_tc: extra.in_tc, in_ac: extra.in_ac, out_tc: job.transfer_code, out_ac: job.auth_code, applied });
+      }
+
+      await fetchFreeStatus({notify:false});
+      resetBtn();
+
+    } else if (job.status === 'error') {
+      clearInterval(iv);
+      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
+      box.className = 'result-box show error-box';
+      const recoveryHtml = job.recovery_transfer_code ? `
+        <div class="code-display" style="margin-top:14px;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.recovery_transfer_code}<button class="copy-btn" onclick="copyText('${job.recovery_transfer_code}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.recovery_auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.recovery_auth_code||''}',this)">コピー</button></div></div>
+        </div>` : '';
+      const transferWarning = job.transfer_received && !job.recovery_transfer_code
+        ? `<div style="color:#b7791f;font-size:12px;margin-top:12px;">引き継ぎ取得後に失敗しています。元のコードをすぐ再使用せず、管理者へ確認してください。</div>` : '';
+      box.innerHTML = `
+        ${job.admin_recovery_required && operationId ? `<div style="font-size:12px;color:var(--error);font-weight:700;margin-bottom:10px;">管理復旧用受付ID: <code>${escChar(operationId)}</code></div>` : ''}
+        <div style="color:var(--error);font-weight:700;margin-bottom:8px;">エラーが発生しました</div>
+        <div class="error-msg">${escChar(job.error||'不明なエラー')}</div>
+        ${recoveryHtml}${transferWarning}`;
+      if (tab === 'daiko' || tab === 'clone') {
+        const returnedTc = job.recovery_transfer_code || '';
+        const returnedAc = job.recovery_auth_code || '';
+        const historyEntry = {
+          type:tab,
+          operation_id:job.admin_recovery_required ? operationId : null,
+          status:'error', in_tc:extra.in_tc, in_ac:extra.in_ac,
+          error:job.error||'不明なエラー',
+          recovery_failed:!!job.admin_recovery_required
+        };
+        if (tab === 'daiko') {
+          historyEntry.out_tc = returnedTc;
+          historyEntry.out_ac = returnedAc;
+        } else {
+          historyEntry.orig_tc = returnedTc;
+          historyEntry.orig_ac = returnedAc;
+          historyEntry.copies = job.copies || [];
+        }
+        addHistory(historyEntry);
+      }
+      await fetchFreeStatus({notify:false});
+      resetBtn();
+    }
+  }, 2000);
+}
+
+function resumeSavedJobs() {
+  for (const tab of ['daiko','create','clone']) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`) || 'null');
+      if (!saved?.job_id || Date.now() - Number(saved.saved_at || 0) > 30 * 60 * 1000) {
+        localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
+        continue;
+      }
+      if (document.getElementById(`btn-${tab}`) && document.getElementById(`result-${tab}`)) {
+        startJob(tab, null, null, saved.extra || {}, saved.job_id, saved.job_token || null);
+      }
+    } catch {
+      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
+    }
+  }
+}
+
+// ── キャラ検索 ──
+let charDict = null;
+let charSearchLoading = false;
+
+async function openCharSearch() {
+  document.getElementById('charsearch-modal').style.display = 'block';
+  document.getElementById('charsearch-input').value = '';
+  document.getElementById('charsearch-results').innerHTML = '';
+  if (!charDict && !charSearchLoading) {
+    await loadCharDict();
+  } else if (charDict) {
+    document.getElementById('charsearch-status').textContent = `${Object.keys(charDict).length} キャラクター読み込み済み`;
+  }
+  setTimeout(() => document.getElementById('charsearch-input').focus(), 100);
+}
+
+function closeCharSearch() {
+  document.getElementById('charsearch-modal').style.display = 'none';
+}
+
+async function loadCharDict() {
+  charSearchLoading = true;
+  const status = document.getElementById('charsearch-status');
+  status.textContent = 'データを取得中...';
+  try {
+    const res = await fetch('/api/char_dict');
+    if (!res.ok) throw new Error('fetch failed');
+    charDict = await res.json();
+    status.textContent = `${Object.keys(charDict).length} キャラクター読み込み済み`;
+  } catch (e) {
+    status.textContent = 'データ取得に失敗しました';
+  }
+  charSearchLoading = false;
+}
+
+function onCharSearchInput() {
+  const query = document.getElementById('charsearch-input').value.trim();
+  const resultsEl = document.getElementById('charsearch-results');
+  if (!charDict) {
+    resultsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0;">データ読み込み中...</div>';
+    return;
+  }
+  if (!query) {
+    resultsEl.innerHTML = '';
+    return;
+  }
+  const results = Object.entries(charDict)
+    .filter(([name]) => name.includes(query))
+    .sort((a, b) => parseInt(a[1]) - parseInt(b[1]));
+  if (!results.length) {
+    resultsEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0;">「${query}」は見つかりませんでした</div>`;
+    return;
+  }
+  resultsEl.innerHTML = results.map(([name, no]) =>
+    `<div style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Consolas','Monaco',monospace;font-size:13px;color:var(--accent);min-width:48px;">No.${no}</span>
+      <span style="font-size:14px;color:var(--text);">${name}</span>
+    </div>`
+  ).join('');
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓'; setTimeout(()=>btn.textContent='コピー', 1500);
+  });
+}
+
+// ── 個数管理 ──
+const countState = { create: 1, clone: 1 };
+function setCount(tab, n, el) {
+  countState[tab] = n;
+  el.closest('div').querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── 履歴管理 ──
+const HISTORY_KEY = 'nyanko_history';
+let currentHistTab = 'daiko';
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]').map(e => {
+      const clean = {...e};
+      // Older versions stored an automatically issued code under recovery_* but
+      // never rendered it. Migrate it into the normal returned-code fields.
+      if (clean.recovery_tc) {
+        if (clean.type === 'daiko' && !clean.out_tc) {
+          clean.out_tc = clean.recovery_tc;
+          clean.out_ac = clean.recovery_ac || '';
+        } else if (clean.type === 'clone' && !clean.orig_tc) {
+          clean.orig_tc = clean.recovery_tc;
+          clean.orig_ac = clean.recovery_ac || '';
+        }
+      }
+      if (!clean.recovery_failed) delete clean.operation_id;
+      return clean;
+    });
+  } catch { return []; }
+}
+function saveHistory(list) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+}
+function addHistory(entry) {
+  const list = loadHistory();
+  const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const filtered = list.filter(e => e.ts > oneMonthAgo);
+  filtered.unshift({ ...entry, ts: Date.now() });
+  saveHistory(filtered);
+}
+function clearHistory() {
+  if (!confirm('履歴を全削除しますか？')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+function openHistory() {
+  document.getElementById('history-modal').style.display = 'block';
+  renderHistory();
+}
+function closeHistory() {
+  document.getElementById('history-modal').style.display = 'none';
+}
+function openTerms() {
+  document.getElementById('terms-modal').style.display = 'block';
+}
+function closeTerms() {
+  document.getElementById('terms-modal').style.display = 'none';
+}
+function switchHistTab(tab, el) {
+  currentHistTab = tab;
+  document.querySelectorAll('.hist-tab-btn').forEach(b => {
+    b.style.background = 'none';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  el.style.background = 'var(--tag-bg)';
+  el.style.borderColor = 'var(--accent)';
+  el.style.color = 'var(--accent)';
+  renderHistory();
+}
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function renderHistory() {
+  const list = loadHistory();
+  const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const filtered = list
+    .filter(e => e.ts > oneMonthAgo)
+    .filter(e => currentHistTab === 'all' || e.type === currentHistTab);
+
+  const el = document.getElementById('history-list');
+  if (!filtered.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">履歴がありません</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(e => {
+    const typeLabel = e.type === 'daiko' ? '代行' : e.type === 'create' ? 'アカウント作成' : '複製';
+    const typeColor = e.type === 'daiko' ? '#60a5fa' : e.type === 'create' ? 'var(--success)' : 'var(--accent)';
+
+    let codesHtml = '';
+    if (e.type === 'daiko') {
+      codesHtml = `
+        <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">使用した引き継ぎコード・認証番号</div>
+        <div class="code-display" style="margin:0 0 8px;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.in_tc||'—'}<button class="copy-btn" onclick="copyText('${e.in_tc}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.in_ac||'—'}<button class="copy-btn" onclick="copyText('${e.in_ac}',this)">コピー</button></div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">代行後の引き継ぎコード・認証番号</div>
+        <div class="code-display" style="margin:0;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.out_tc||'—'}<button class="copy-btn" onclick="copyText('${e.out_tc}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.out_ac||'—'}<button class="copy-btn" onclick="copyText('${e.out_ac}',this)">コピー</button></div></div>
+        </div>
+        ${e.applied && e.applied.length ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px;">適応項目</div><div class="applied-list">${e.applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
+    } else if (e.type === 'create') {
+      const accounts = e.accounts || [];
+      codesHtml = accounts.map((acc, i) => `
+        ${accounts.length > 1 ? `<div style="font-size:11px;color:var(--muted);margin:${i===0?'8':'14'}px 0 4px;">アカウント ${i+1}</div>` : '<div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">作成したアカウントの引き継ぎコード・認証番号</div>'}
+        <div class="code-display" style="margin:0;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${acc.tc||'—'}<button class="copy-btn" onclick="copyText('${acc.tc}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${acc.ac||'—'}<button class="copy-btn" onclick="copyText('${acc.ac}',this)">コピー</button></div></div>
+        </div>`).join('');
+      if (e.applied && e.applied.length) {
+        codesHtml += `<div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px;">適応項目</div><div class="applied-list">${e.applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>`;
+      }
+    } else if (e.type === 'clone') {
+      const copies = e.copies || [];
+      codesHtml = `
+        <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">使用した引き継ぎコード・認証番号</div>
+        <div class="code-display" style="margin:0 0 8px;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.in_tc||'—'}<button class="copy-btn" onclick="copyText('${e.in_tc}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.in_ac||'—'}<button class="copy-btn" onclick="copyText('${e.in_ac}',this)">コピー</button></div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">元のアカウントの引き継ぎコード・認証番号</div>
+        <div class="code-display" style="margin:0 0 8px;">
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.orig_tc||'—'}<button class="copy-btn" onclick="copyText('${e.orig_tc}',this)">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.orig_ac||'—'}<button class="copy-btn" onclick="copyText('${e.orig_ac}',this)">コピー</button></div></div>
+        </div>
+        ${copies.map((c, i) => `
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${copies.length > 1 ? `複製アカウント ${i+1}` : '複製のアカウントの引き継ぎコード・認証番号'}</div>
+          <div class="code-display" style="margin:0 ${i < copies.length-1 ? '0 8px' : ''};">
+            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${c.tc||'—'}<button class="copy-btn" onclick="copyText('${c.tc}',this)">コピー</button></div></div>
+            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${c.ac||'—'}<button class="copy-btn" onclick="copyText('${c.ac}',this)">コピー</button></div></div>
+          </div>`).join('')}`;
+    }
+
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700;background:color-mix(in srgb,${typeColor} 15%,transparent);border:1px solid color-mix(in srgb,${typeColor} 40%,transparent);color:${typeColor};">${typeLabel}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto;">${fmtDate(e.ts)}</span>
+      </div>
+      ${e.operation_id && e.recovery_failed ? `<div style="font-size:11px;color:var(--error);margin-bottom:6px;">管理復旧用受付ID: <code>${escChar(e.operation_id)}</code> / 管理パネルで再発行が必要</div>` : ''}
+      ${e.status==='error' ? `<div class="error-msg">${escChar(e.error||'不明なエラー')}</div>${e.recovery_failed?'<div style="color:var(--error);font-size:11px;">管理パネルで引き継ぎコードを再発行してください</div>':''}` : ''}
+      ${codesHtml}
+    </div>`;
+  }).join('');
+}
+
+buildOptions('daiko');
+buildOptions('create');
+updateTrialCountdown();setInterval(updateTrialCountdown,1000);
+if(new URLSearchParams(location.search).get('trial_invite')==='1')setTimeout(()=>toggleInvitation(true),250);
+resumeSavedJobs();
+observeRunButtons();
+initialiseFreeUsage();
+setInterval(()=>fetchFreeStatus({notify:true}),15000);
+
+// ── 使用回数のリアルタイム表示 ──
+async function fetchUsageCount() {
+  try {
+    const res = await fetch('/api/usage_count');
+    if (!res.ok) return;
+    const { count } = await res.json();
+    const el = document.getElementById('usage-count-num');
+    if (el) el.textContent = count.toLocaleString('ja-JP');
+  } catch (e) { /* 通信エラーは無視して次回の更新を待つ */ }
+}
+fetchUsageCount();
+setInterval(fetchUsageCount, 5000);
+</script>
+</body>
+</html>
