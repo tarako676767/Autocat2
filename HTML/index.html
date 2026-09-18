@@ -140,10 +140,6 @@
   .trial-promo strong { color:#86efac;font-size:14px; }.trial-promo p{flex:1;min-width:220px;color:var(--muted);font-size:11px}.trial-countdown{font:800 15px ui-monospace,monospace;color:#86efac}
   .month-end-nudge{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:13px 15px;border:1px solid rgba(56,189,248,.42);border-radius:11px;background:rgba(56,189,248,.07)}.month-end-nudge[hidden]{display:none!important}.month-end-nudge strong{color:#7dd3fc}.month-end-nudge p{flex:1;min-width:220px;margin:0;color:var(--muted);font-size:11px}.month-end-actions{display:flex;gap:7px;flex-wrap:wrap}
   .free-option-actions { display:flex;justify-content:flex-end;margin-bottom:10px; }.free-option-actions .btn{padding:7px 12px;font-size:11px}
-  .vip-locked-card { border-color:rgba(250,204,21,.3);background:linear-gradient(135deg,rgba(250,204,21,.055),var(--surface)); }
-  .vip-locked-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:5px; }
-  .vip-locked-option { display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(250,204,21,.17);border-radius:6px;color:#d6cfae;background:rgba(250,204,21,.025);cursor:pointer;user-select:none; }
-  .vip-lock { display:grid;place-items:center;width:17px;height:17px;border-radius:4px;background:rgba(250,204,21,.13);color:#fde047;font-size:10px;flex:none }.vip-locked-option span:last-child{font-size:12px}.vip-locked-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:11px}
   .free-preset-modal { display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.72);backdrop-filter:blur(5px) }.free-preset-dialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(520px,94vw);padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}.free-preset-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}.free-preset-head strong{font-size:14px}.free-preset-head span{color:var(--muted);font-size:10px}.free-preset-dialog input{width:100%;padding:10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text)}.free-preset-status{min-height:18px;margin-top:8px;color:var(--muted);font-size:11px}.free-preset-buttons{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin-top:12px}
 
   @media (max-width: 640px) {
@@ -155,7 +151,6 @@
     .user-chip { font-size: 12px; padding: 5px 9px; }
     .vip-promo { grid-template-columns:1fr; padding:17px 16px; }
     .vip-promo-action { width:100%; justify-content:center; }
-    .vip-locked-grid { grid-template-columns:1fr 1fr; }
   }
 
   .tabs { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
@@ -312,7 +307,6 @@
   }
   .top-notice.show { transform:translate(-50%,10px);opacity:1; }
   .top-notice.error { border-color:var(--error);color:#fecaca; }
-
 
   @media (max-width: 580px) {
     .row-2 { grid-template-columns: 1fr; }
@@ -802,14 +796,15 @@ const CUSTOM_INPUT_DEFS = [
 ];
 
 const NEEDS_CHAR_SET = new Set(["unlock_specific","remove_specific","max_specific","max_specific_2","true_form_specific","level_specific","form_specific"]);
-
-// サーバー側と同じ「時間:分」フォーマット (時間は最大4桁、分は0〜59)
 const PLAYTIME_CLIENT_RE = /^\d{1,4}:([0-5]?\d)$/;
 
 const state = {
   daiko:  { s1:new Set(), s2:new Set(), s3:new Set(), s4:new Set() },
   create: { s1:new Set(), s2:new Set(), s3:new Set(), s4:new Set() },
 };
+
+let createCount = 1;
+let cloneCount = 1;
 
 let characterMetadata = null;
 let characterMetadataPromise = null;
@@ -825,13 +820,6 @@ const characterBulkLevels = {
 
 let currentMainTab = 'daiko';
 const FREE_PRESET_STORAGE_KEY = 'autocat_presets_free_v1';
-const VIP_LOCKED_FEATURES = [
-  '使用回数 無制限','作成・複製 最大5個','アカウント種別選択','プリセット 最大10件',
-  'メイン章・ステージ個別指定','イベントステージ個別指定','ステージごとのクリア回数指定','レジェンドマップ詳細指定',
-  'ゾンビ・魔界編詳細指定','地底迷宮のキャラ・勲章指定','キャラ本能の個別設定・無効化','編成1〜20の10枠個別設定',
-  '施設ごとのレベル指定','本能玉の種類・ランク別指定','イベントチケット種類別指定','アイテム種類ごとの個別指定',
-  'ユーザーランク報酬状態変更','キャラ図鑑報酬状態変更','ネコのスクラッチャーリセット','全ミッション詳細クリア'
-];
 let freePresetTargetTab='daiko';
 
 function readFreePreset(){try{const value=JSON.parse(localStorage.getItem(FREE_PRESET_STORAGE_KEY)||'null');return value&&value.version===1?value:null;}catch{return null;}}
@@ -854,11 +842,6 @@ function loadFreePresetIntoCurrentTab(){
   const characters=Array.isArray(preset.characters)?preset.characters.slice(0,1000):[];characterSelectionState[tab]=new Map(characters.filter(pair=>Array.isArray(pair)&&pair.length===2&&Number.isInteger(Number(pair[0]))).map(([id,item])=>[Number(id),item]));
   characterFormFilter[tab]=Math.max(1,Math.min(4,Number(preset.character_form)||1));characterRarityFilter[tab]=preset.character_rarity==='all'?'all':Math.max(0,Math.min(5,Number(preset.character_rarity)||0));characterLevelMode[tab]=preset.character_level_mode==='individual'?'individual':'same';characterBulkLevels[tab]={base_level:Math.max(1,Math.min(60,Number(preset.character_bulk?.base_level)||60)),plus_level:Math.max(0,Math.min(90,Number(preset.character_bulk?.plus_level)||0))};
   buildOptions(tab);const inputs=preset.inputs||{};for(const def of CUSTOM_INPUT_DEFS){const el=document.getElementById(`amt-${tab}-${def.key}`);if(el)el.value=inputs[def.key]??'';}const playtime=document.getElementById(`amt-${tab}-custom_playtime`);if(playtime)playtime.value=inputs.custom_playtime??'';const ids=document.getElementById(`char-input-${tab}`);if(ids)ids.value=inputs.character_ids??'';syncExtraInputs(tab);syncTags(tab);renderSelectedCharacters(tab);closeFreePreset();showTopNotice('Freeプリセットを読み込みました。');
-}
-
-function appendVipLockedCard(container){
-  const card=document.createElement('div');card.className='card vip-locked-card';card.innerHTML=`<div class="card-title" style="color:#fde047">VIP限定機能（Freeでは選択できません）</div><div class="vip-locked-grid">${VIP_LOCKED_FEATURES.map(label=>`<div class="vip-locked-option" role="link" tabindex="0"><span class="vip-lock">鍵</span><span>${label}</span></div>`).join('')}</div><div class="vip-locked-note"><span>VIPにすると、ここに表示されている機能を実際に設定できます。</span><a class="btn btn-ghost vip-link" href="/vip-guide">VIPとの違いを見る</a></div>`;
-  card.querySelectorAll('.vip-locked-option').forEach(item=>{const open=()=>location.assign('/vip-guide#compare');item.addEventListener('click',open);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});});container.appendChild(card);
 }
 
 function updateStickyRunButton() {
@@ -1072,7 +1055,6 @@ function buildOptions(tab) {
     amtGrid.appendChild(row);
   }
 
-  // プレイ時間(絶対値指定)専用の入力行。「時間:分」以外の文字は入力段階で除去する。
   const ptRow = document.createElement('div');
   ptRow.className = 'custom-input-row';
   ptRow.id = `custom-row-${tab}-custom_playtime`;
@@ -1086,7 +1068,6 @@ function buildOptions(tab) {
 
   s4Card.appendChild(amtGrid);
   container.appendChild(s4Card);
-  appendVipLockedCard(container);
 
   syncExtraInputs(tab);
   syncTags(tab);
@@ -1098,6 +1079,7 @@ function toggle(tab, gkey, val, el) {
   else              { set.add(val);    el.classList.add('checked'); }
   syncExtraInputs(tab);
   syncTags(tab);
+  validateTabButtons(tab);
 }
 
 function syncExtraInputs(tab) {
@@ -1131,12 +1113,45 @@ function syncTags(tab) {
     : '<span class="tag-empty">何も選択されていません</span>';
 }
 
+function validateTabButtons(tab) {
+  const btn = document.getElementById(`btn-${tab}`);
+  if (!btn) return;
+  
+  if (tab === 'clone') {
+    const tc = document.getElementById('cl_transfer_code')?.value.trim();
+    const ac = document.getElementById('cl_auth_code')?.value.trim();
+    btn.disabled = !(tc && ac && /^[0-9a-fA-F]{9}$/.test(tc) && /^\d{4}$/.test(ac));
+  } else {
+    let hasSelection = false;
+    for (const g of GROUPS) {
+      if (state[tab][g.key].size > 0) { hasSelection = true; break; }
+    }
+    if (tab === 'daiko') {
+      const tc = document.getElementById('d_transfer_code')?.value.trim();
+      const ac = document.getElementById('d_auth_code')?.value.trim();
+      const codeValid = tc && ac && /^[0-9a-fA-F]{9}$/.test(tc) && /^\d{4}$/.test(ac);
+      btn.disabled = !(hasSelection && codeValid);
+    } else {
+      btn.disabled = !hasSelection;
+    }
+  }
+  updateStickyRunButton();
+}
+
+function setCount(tab, count, el) {
+  if (tab === 'create') createCount = count;
+  if (tab === 'clone') cloneCount = count;
+  el.parentElement.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
 function resetAll(tab) {
   for (const g of GROUPS) state[tab][g.key].clear();
   characterSelectionState[tab].clear();
   buildOptions(tab);
   const r = document.getElementById(`result-${tab}`);
-  r.classList.remove('show','success','error-box');
+  if (r) r.classList.remove('show','success','error-box');
+  validateTabButtons(tab);
 }
 
 function switchTab(tab) {
@@ -1144,23 +1159,22 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['daiko','create','clone'][i]===tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
+  validateTabButtons(tab);
   updateStickyRunButton();
 }
 
-// ── 入力段階でのサニタイズ / バリデーション ──
-
-// 16進数(0-9,a-f,A-F)以外を即座に除去し、指定桁数を超えたら切り詰める(引き継ぎコード用)
 function sanitizeHexInput(el, maxLen, errId) {
   el.value = el.value.replace(/[^0-9a-fA-F]/g, '').slice(0, maxLen);
   const errEl = document.getElementById(errId);
   if (errEl) errEl.textContent = '';
+  validateTabButtons(currentMainTab);
 }
 
-// 数字(0-9)以外を即座に除去し、指定桁数を超えたら切り詰める(認証番号用)
 function sanitizeDigitsInput(el, maxLen, errId) {
   el.value = el.value.replace(/[^0-9]/g, '').slice(0, maxLen);
   const errEl = document.getElementById(errId);
   if (errEl) errEl.textContent = '';
+  validateTabButtons(currentMainTab);
 }
 
 function checkTransferCode(el, errId) {
@@ -1168,9 +1182,11 @@ function checkTransferCode(el, errId) {
   if (!errEl) return true;
   if (el.value && !/^[0-9a-fA-F]{9}$/.test(el.value)) {
     errEl.textContent = '引き継ぎコードは9桁の16進数(0-9,a-f)で入力してください';
+    validateTabButtons(currentMainTab);
     return false;
   }
   errEl.textContent = '';
+  validateTabButtons(currentMainTab);
   return true;
 }
 
@@ -1179,13 +1195,14 @@ function checkAuthCode(el, errId) {
   if (!errEl) return true;
   if (el.value && !/^\d{4}$/.test(el.value)) {
     errEl.textContent = '認証番号は4桁の数字(0-9)で入力してください';
+    validateTabButtons(currentMainTab);
     return false;
   }
   errEl.textContent = '';
+  validateTabButtons(currentMainTab);
   return true;
 }
 
-// 数字とコロン以外を除去し、コロンは1つまでに制限。時間は4桁・分は2桁まで。
 function sanitizePlaytimeInput(el, errId) {
   let v = el.value.replace(/[^0-9:]/g, '');
   const firstColon = v.indexOf(':');
@@ -1230,7 +1247,6 @@ function collectPayload(tab) {
   return { selected, char_list, character_settings, ...custom_amounts, custom_playtime };
 }
 
-// 送信前の最終チェック。不正なら理由を返し、送信自体を弾く。
 function validateBeforeSubmit(tab, { requireCodes } = {}) {
   if (requireCodes) {
     const prefix = tab === 'clone' ? 'cl' : 'd';
@@ -1261,9 +1277,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
 }
 
 let browserFingerprintPromise = null;
-let freeQuotaLoaded = false;
-let freeQuotaCanUse = false;
-let noticeTimer = null;
 
 function fallbackFingerprintHash(value) {
   const seeds = [2166136261,2654435761,2246822519,3266489917,668265263,374761393,1274126177,42595009];
@@ -1325,726 +1338,275 @@ async function getBrowserFingerprint() {
       (navigator.languages||[]).join(','),navigator.hardwareConcurrency||0,
       navigator.deviceMemory||0,navigator.maxTouchPoints||0,
       width,height,screen.colorDepth||0,screen.pixelDepth||0,
-      Intl.DateTimeFormat().resolvedOptions().timeZone||'',
-      new Date().getTimezoneOffset(),canvasSignature,webglSignature,
+      new Date().getTimezoneOffset(),canvasSignature,webglSignature
     ].join('||');
-    if (crypto.subtle && typeof TextEncoder !== 'undefined') {
-      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(signals));
-      return [...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
-    }
+
     return fallbackFingerprintHash(signals);
   })();
   return browserFingerprintPromise;
 }
 
-function positionTopPanels() {
-  const header=document.getElementById('site-header');
-  if (!header) return;
-  const top=Math.max(0,header.getBoundingClientRect().bottom);
-  const drawer=document.getElementById('invite-drawer');
-  const notice=document.getElementById('top-notice');
-  if (drawer) drawer.style.top=`${top}px`;
-  if (notice) notice.style.top=`${top}px`;
-}
+// ── VIP版と同等の API リクエスト & UI 描画処理 ──
 
-function showTopNotice(message, type='success') {
-  const el=document.getElementById('top-notice');
+function showTopNotice(msg, isError = false) {
+  const el = document.getElementById('top-notice');
   if (!el) return;
-  positionTopPanels();
-  el.textContent=message;
-  el.classList.toggle('error',type==='error');
+  el.textContent = msg;
+  el.classList.toggle('error', isError);
   el.classList.add('show');
-  clearTimeout(noticeTimer);
-  noticeTimer=setTimeout(()=>el.classList.remove('show'),5000);
+  setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-function applyQuotaButtonState() {
-  for (const tab of ['daiko','create','clone']) {
-    const button=document.getElementById(`btn-${tab}`);
-    if (button && button.dataset.running!=='1') {
-      button.disabled=!freeQuotaLoaded||!freeQuotaCanUse;
-    }
-  }
-  updateStickyRunButton();
+function copyText(str) {
+  navigator.clipboard.writeText(str).then(() => showTopNotice('コピーしました')).catch(() => showTopNotice('コピーに失敗しました', true));
 }
 
-function applyFreeStatus(data, {notify=true}={}) {
-  freeQuotaLoaded=true;
-  freeQuotaCanUse=Boolean(data.unlimited)||Number(data.remaining)>0;
-  const remaining=document.getElementById('remaining-count-num');
-  const suffix=document.getElementById('remaining-count-suffix');
-  const weekly=document.getElementById('weekly-count-num');
-  if (remaining) remaining.textContent=Number(data.banked_remaining||0).toLocaleString('ja-JP');
-  if (suffix) suffix.textContent='回';
-  if (weekly) weekly.textContent=Number(data.weekly_remaining||0).toLocaleString('ja-JP');
-  const monthEndNudge=document.getElementById('month-end-account-nudge');
-  if(monthEndNudge)monthEndNudge.hidden=!Boolean(data.month_end_account_required);
-  applyQuotaButtonState();
-  if (data.trial?.claimed && Number(data.trial?.uses_remaining)>0) {
-    const seen=sessionStorage.getItem('autocat_trial_vip_seen_v2');
-    if(!seen){sessionStorage.setItem('autocat_trial_vip_seen_v2','1');showTopNotice('招待成立によりVIP版を1回無料で実行できます。VIPページへ移動します！');setTimeout(()=>location.assign('/vip'),1200);}
-  } else if (data.trial && !data.trial.offer_active) {
-    const trial=document.getElementById('trial-promo');if(trial)trial.hidden=true;
-  }
+async function loadUsageStats() {
   try {
-    const wasPending=localStorage.getItem('autocat_invitation_pending_v1')==='1';
-    if (data.invitation_pending) localStorage.setItem('autocat_invitation_pending_v1','1');
-    else if (wasPending) {
-      localStorage.removeItem('autocat_invitation_pending_v1');
-      showTopNotice('招待が成立しました。合計上限20回の範囲で、招待者に3回・あなたに2回付与されました！');
+    const res = await fetch('/api/usage_status');
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('usage-count-num').textContent = data.used_count ?? '--';
+      document.getElementById('remaining-count-num').textContent = data.bonus_count ?? '--';
+      document.getElementById('weekly-count-num').textContent = data.weekly_count ?? '--';
     }
   } catch {}
-  if (notify && (data.weekly_reset || data.unlimited_awarded)) {
-    const weeklyGrant=Number(data.weekly_grant||0);
-    showTopNotice(data.unlimited_awarded
-      ? 'サイトアカウント特典により、本日はFree版を無制限で利用できます！'
-      : weeklyGrant>0
-        ? `今週のFree利用枠を${weeklyGrant}回付与しました。合計上限は20回です。`
-        : '残り回数が上限20回のため、今週の追加付与はありません。');
-  }
-}
-
-function updateTrialCountdown(){const promo=document.getElementById('trial-promo'),out=document.getElementById('trial-countdown');if(!promo||!out)return;const remaining=Math.max(0,Math.floor(Number(promo.dataset.expires)*1000-Date.now()));if(!remaining){promo.hidden=true;return;}const total=Math.ceil(remaining/1000);out.textContent=`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}
-
-async function fetchFreeStatus(options={}) {
-  try {
-    const fingerprint=await getBrowserFingerprint();
-    const res=await fetchWithTimeout('/api/free/status',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({fingerprint}),
-    },15000);
-    const data=await res.json().catch(()=>({}));
-    if (!res.ok) throw new Error(data.error||'残り回数を確認できませんでした');
-    applyFreeStatus(data,options);
-    return data;
-  } catch (error) {
-    if (!freeQuotaLoaded) {
-      const remaining=document.getElementById('remaining-count-num');
-      if (remaining) remaining.textContent='取得失敗';
-      applyQuotaButtonState();
-    }
-    return null;
-  }
-}
-
-async function loadInvitationLink() {
-  const input=document.getElementById('invitation-link');
-  const copyButton=document.getElementById('copy-invitation-button');
-  const message=document.getElementById('invitation-message');
-  if (input) input.value='読み込み中...';
-  if (copyButton) copyButton.disabled=true;
-  try {
-    const fingerprint=await getBrowserFingerprint();
-    const res=await fetchWithTimeout('/api/free/invitation',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({fingerprint}),
-    },15000);
-    const data=await res.json().catch(()=>({}));
-    if (!res.ok) throw new Error(data.error||'招待リンクを発行できませんでした');
-    if (input) input.value=data.url;
-    if (copyButton) copyButton.disabled=false;
-    if (message) {
-      const remaining=Number.isInteger(data.daily_invite_remaining)?` 本日はあと${data.daily_invite_remaining}人招待できます。`:'';
-      message.textContent=`招待された人が無料版を1回成功させると、招待者に3回・利用者に2回付与されます。招待成立は1日2人・月10人、受取は1日1人・月3人、週間無料枠と招待報酬の合計上限は20回です。${remaining}`;
-    }
-    applyFreeStatus(data,{notify:false});
-    try { localStorage.setItem('autocat_invitation_pending_v1','1'); } catch {}
-  } catch (error) {
-    if (input) input.value='発行できませんでした';
-    if (message) message.textContent=error.message;
-  }
-}
-
-async function toggleInvitation(force) {
-  const drawer=document.getElementById('invite-drawer');
-  if (!drawer) return;
-  const open=typeof force==='boolean'?force:!drawer.classList.contains('open');
-  positionTopPanels();
-  drawer.classList.toggle('open',open);
-  drawer.setAttribute('aria-hidden',open?'false':'true');
-  if (open) await loadInvitationLink();
-}
-
-async function copyInvitationLink() {
-  const input=document.getElementById('invitation-link');
-  if (!input||!/^https:\/\//.test(input.value)) return;
-  try {
-    await navigator.clipboard.writeText(input.value);
-  } catch {
-    input.select();document.execCommand('copy');
-  }
-  showTopNotice('招待リンクをコピーしました。');
-}
-
-async function redeemInvitationFromUrl() {
-  const params=new URLSearchParams(location.search);
-  const code=params.get('code')||'';
-  if (!code) return;
-  if (!/^[A-Za-z0-9]{30}$/.test(code)) {
-    showTopNotice('招待コードの形式が不正です。','error');
-    history.replaceState(null,'',location.pathname+location.hash);
-    return;
-  }
-  try {
-    const fingerprint=await getBrowserFingerprint();
-    const res=await fetchWithTimeout('/api/free/invitation/redeem',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code,fingerprint}),
-    },15000);
-    const data=await res.json().catch(()=>({}));
-    if (!res.ok) throw new Error(data.error||'招待報酬を受け取れませんでした');
-    applyFreeStatus(data,{notify:false});
-    showTopNotice('招待を仮登録しました。無料版の代行・作成・複製を1回成功すると、招待者に3回・あなたに2回付与されます。');
-  } catch (error) {
-    showTopNotice(error.message,'error');
-  } finally {
-    history.replaceState(null,'',location.pathname+location.hash);
-  }
-}
-
-async function initialiseFreeUsage() {
-  positionTopPanels();
-  await fetchFreeStatus({notify:true});
-  await redeemInvitationFromUrl();
-}
-
-window.addEventListener('resize',positionTopPanels);
-
-function generateOperationId() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const values = new Uint8Array(30);
-  crypto.getRandomValues(values);
-  return [...values].map(v => chars[v % chars.length]).join('');
 }
 
 async function submitDaiko() {
-  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
   const err = validateBeforeSubmit('daiko', { requireCodes: true });
   if (err) { alert(err); return; }
-  const tc = document.getElementById('d_transfer_code').value.trim();
-  const ac = document.getElementById('d_auth_code').value.trim();
+
   const btn = document.getElementById('btn-daiko');
-  btn.dataset.running = '1';
-  btn.disabled = true; btn.textContent = '認証中...';
+  const resBox = document.getElementById('result-daiko');
+  const statusEl = document.getElementById('status-daiko');
+  btn.disabled = true;
+  resBox.className = 'result-box show';
+  statusEl.innerHTML = '処理中... セーブデータを暗号化・適用しています';
+
+  const payload = {
+    transfer_code: document.getElementById('d_transfer_code').value.trim(),
+    auth_code: document.getElementById('d_auth_code').value.trim(),
+    device_fp: await getBrowserFingerprint(),
+    ...collectPayload('daiko')
+  };
+
   try {
-    const fingerprint = await getBrowserFingerprint();
-    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
-    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
-    const { api_key } = await keyRes.json();
-    const operation_id = generateOperationId();
-    const payload = { ...collectPayload('daiko'), transfer_code: tc, auth_code: ac, api_key, operation_id, fingerprint };
-    await startJob('daiko', '/api/run_daiko', payload, { in_tc: tc, in_ac: ac, operation_id });
+    const res = await fetchWithTimeout('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      resBox.className = 'result-box show success';
+      let html = `<div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:10px;">✓ 代行が正常に完了しました！</div>`;
+      if (data.transfer_code && data.auth_code) {
+        html += `<div class="code-display">
+          <div class="code-box"><div class="clabel">新引き継ぎコード</div><div class="code-val"><span>${data.transfer_code}</span><button class="copy-btn" onclick="copyText('${data.transfer_code}')">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">新認証番号</div><div class="code-val"><span>${data.auth_code}</span><button class="copy-btn" onclick="copyText('${data.auth_code}')">コピー</button></div></div>
+        </div>`;
+      }
+      if (data.applied_items && data.applied_items.length) {
+        html += `<div style="font-size:11px;color:var(--muted);margin-top:8px;">適用された項目:</div><div class="applied-list">${data.applied_items.map(i=>`<span class="applied-tag">${escChar(i)}</span>`).join('')}</div>`;
+      }
+      statusEl.innerHTML = html;
+      loadUsageStats();
+    } else {
+      resBox.className = 'result-box show error-box';
+      statusEl.innerHTML = `<div class="error-msg">❌ エラー: ${escChar(data.message || '処理に失敗しました')}</div>`;
+    }
   } catch (e) {
-    delete btn.dataset.running;
-    btn.textContent = '代行を実行する'; applyQuotaButtonState();
-    alert('エラーが発生しました');
+    resBox.className = 'result-box show error-box';
+    statusEl.innerHTML = `<div class="error-msg">❌ 通信エラーが発生しました。時間をおいて再試行してください。</div>`;
+  } finally {
+    validateTabButtons('daiko');
   }
 }
 
 async function submitCreate() {
-  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
   const err = validateBeforeSubmit('create', { requireCodes: false });
   if (err) { alert(err); return; }
+
   const btn = document.getElementById('btn-create');
-  btn.dataset.running = '1';
-  btn.disabled = true; btn.textContent = '認証中...';
+  const resBox = document.getElementById('result-create');
+  const statusEl = document.getElementById('status-create');
+  btn.disabled = true;
+  resBox.className = 'result-box show';
+  statusEl.innerHTML = `新規アカウントを作成中 (${createCount}個)...`;
+
+  const payload = {
+    count: createCount,
+    device_fp: await getBrowserFingerprint(),
+    ...collectPayload('create')
+  };
+
   try {
-    const fingerprint = await getBrowserFingerprint();
-    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
-    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
-    const { api_key } = await keyRes.json();
-    const count = countState.create;
-    const payload = { ...collectPayload('create'), count, api_key, fingerprint };
-    await startJob('create', '/api/run_create', payload);
+    const res = await fetchWithTimeout('/api/create_account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      resBox.className = 'result-box show success';
+      let html = `<div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:10px;">✓ 新規アカウント作成完了！</div>`;
+      const accounts = data.accounts || (data.transfer_code ? [{transfer_code: data.transfer_code, auth_code: data.auth_code}] : []);
+      
+      accounts.forEach((acc, idx) => {
+        html += `<div class="code-display" style="margin-bottom:8px;">
+          <div class="code-section-label">アカウント #${idx+1}</div>
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val"><span>${acc.transfer_code}</span><button class="copy-btn" onclick="copyText('${acc.transfer_code}')">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val"><span>${acc.auth_code}</span><button class="copy-btn" onclick="copyText('${acc.auth_code}')">コピー</button></div></div>
+        </div>`;
+      });
+
+      if (data.applied_items && data.applied_items.length) {
+        html += `<div style="font-size:11px;color:var(--muted);margin-top:8px;">適用された項目:</div><div class="applied-list">${data.applied_items.map(i=>`<span class="applied-tag">${escChar(i)}</span>`).join('')}</div>`;
+      }
+      statusEl.innerHTML = html;
+      loadUsageStats();
+    } else {
+      resBox.className = 'result-box show error-box';
+      statusEl.innerHTML = `<div class="error-msg">❌ エラー: ${escChar(data.message || '作成に失敗しました')}</div>`;
+    }
   } catch (e) {
-    delete btn.dataset.running;
-    btn.textContent = 'アカウントを作成する'; applyQuotaButtonState();
-    alert('エラーが発生しました');
+    resBox.className = 'result-box show error-box';
+    statusEl.innerHTML = `<div class="error-msg">❌ 通信エラーが発生しました。</div>`;
+  } finally {
+    validateTabButtons('create');
   }
 }
 
 async function submitClone() {
-  if (!freeQuotaLoaded || !freeQuotaCanUse) { alert('残り使用可能回数がありません。'); return; }
   const err = validateBeforeSubmit('clone', { requireCodes: true });
   if (err) { alert(err); return; }
-  const tc = document.getElementById('cl_transfer_code').value.trim();
-  const ac = document.getElementById('cl_auth_code').value.trim();
+
   const btn = document.getElementById('btn-clone');
-  btn.dataset.running = '1';
-  btn.disabled = true; btn.textContent = '認証中...';
-  try {
-    const fingerprint = await getBrowserFingerprint();
-    const keyRes = await fetchWithTimeout('/api/get_key', { method: 'POST' }, 15000);
-    if (!keyRes.ok) throw new Error('認証キーを取得できませんでした');
-    const { api_key } = await keyRes.json();
-    const count = countState.clone;
-    const operation_id = generateOperationId();
-    await startJob('clone', '/api/run_clone', { transfer_code: tc, auth_code: ac, count, api_key, operation_id, fingerprint }, { in_tc: tc, in_ac: ac, operation_id });
-  } catch (e) {
-    delete btn.dataset.running;
-    btn.textContent = '複製を実行する'; applyQuotaButtonState();
-    alert('エラーが発生しました');
-  }
-}
-
-const ACTIVE_JOB_KEY_PREFIX = 'autocat_active_job_';
-
-async function startJob(tab, url, payload, extra = {}, resumeJobId = null, resumeJobToken = null) {
-  const btn = document.getElementById(`btn-${tab}`);
-  btn.dataset.running = '1';
+  const resBox = document.getElementById('result-clone');
+  const statusEl = document.getElementById('status-clone');
   btn.disabled = true;
-  btn.textContent = '処理中...';
-  const box = document.getElementById(`result-${tab}`);
-  box.className = 'result-box show';
-  box.innerHTML = `
-    <div class="progress-bar"><div class="progress-fill anim" id="prog-${tab}"></div></div>
-    <div class="status-text" id="status-${tab}">処理を開始しています...</div>`;
+  resBox.className = 'result-box show';
+  statusEl.innerHTML = `アカウントを複製中 (${cloneCount}個)...`;
 
-  const resetBtn = () => {
-    delete btn.dataset.running;
-    btn.textContent = tab==='daiko' ? '代行を実行する' : tab==='create' ? 'アカウントを作成する' : '複製を実行する';
-    applyQuotaButtonState();
+  const payload = {
+    transfer_code: document.getElementById('cl_transfer_code').value.trim(),
+    auth_code: document.getElementById('cl_auth_code').value.trim(),
+    count: cloneCount,
+    device_fp: await getBrowserFingerprint()
   };
 
-  const showStartError = message => {
-    box.className = 'result-box show error-box';
-    box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">処理を開始できませんでした</div><div class="error-msg">${escChar(message)}</div>`;
-    resetBtn();
-  };
-
-  let job_id = resumeJobId;
-  let jobToken = resumeJobToken;
-  if (!job_id) {
-    let res;
-    try {
-      res = await fetchWithTimeout(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}, 60000);
-    } catch (e) {
-      showStartError(e?.name === 'AbortError' ? '開始要求が60秒以内に完了しませんでした。開始済みの可能性があるため、すぐ再実行せず管理者へ確認してください。' : '開始要求の通信に失敗しました。');
-      fetchFreeStatus({notify:false});
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      box.className = 'result-box show error-box';
-      box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">エラー</div><div class="error-msg">${escChar(err.error || '処理を開始できませんでした')}</div>`;
-      await fetchFreeStatus({notify:false});
-      resetBtn();
-      return;
-    }
-    ({job_id, job_token:jobToken} = await res.json());
-    fetchFreeStatus({notify:false});
-  } else {
-    const st = document.getElementById(`status-${tab}`);
-    if (st) st.textContent = '前回の処理状況を復元中...';
-  }
-  if (!job_id) { showStartError('ジョブ番号を取得できませんでした。'); return; }
-  let operationId = extra.operation_id || null;
-  localStorage.setItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`, JSON.stringify({job_id, job_token:jobToken, extra, saved_at: Date.now()}));
-
-  let missCount = 0;
-  let pollBusy = false;
-  const pollingStartedAt = Date.now();
-  const maxPollingMs = tab === 'clone' ? 31 * 60 * 1000 : 11 * 60 * 1000;
-  const showPollingError = async message => {
-    clearInterval(iv);
-    box.className = 'result-box show error-box';
-    box.innerHTML = `<div style="color:var(--error);font-weight:700;margin-bottom:8px;">状態確認エラー</div><div class="error-msg">${escChar(message)}</div>`;
-    await fetchFreeStatus({notify:false});
-    resetBtn();
-  };
-  const iv = setInterval(async () => {
-    if (pollBusy) return;
-    if (Date.now() - pollingStartedAt > maxPollingMs) {
-      showPollingError('最大待機時間を超えました。引き継ぎ取得後の可能性があるため、すぐ再実行せず管理者へ確認してください。');
-      return;
-    }
-    pollBusy = true;
-    let job;
-    try {
-      const headers = jobToken ? {'X-Job-Token': jobToken} : {};
-      const r = await fetchWithTimeout(`/api/job/${job_id}`, {headers}, 12000);
-      if (!r.ok) {
-        if (r.status === 403 || r.status === 404) {
-          localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
-          pollBusy = false;
-          showPollingError(r.status === 403
-            ? 'このブラウザでは処理結果を確認できません。処理自体は継続している可能性があるため、すぐ再実行しないでください。'
-            : 'サーバー再起動などで処理結果を確認できません。引き継ぎ取得後の可能性があるため、すぐ再実行しないでください。');
-          return;
-        }
-        missCount++;
-        pollBusy = false;
-        if (missCount > 5) showPollingError(r.status === 404 ? 'サーバー再起動などで処理結果を確認できません。引き継ぎ取得後の可能性があるため、すぐ再実行しないでください。' : '処理状況を確認できません。通信を確認して再度お試しください。');
-        return;
-      }
-      job = await r.json();
-    } catch {
-      missCount++;
-      pollBusy = false;
-      if (missCount > 5) showPollingError('処理状況の通信が連続して失敗しました。通信を確認してください。');
-      return;
-    }
-    pollBusy = false;
-    missCount = 0;
-    operationId = operationId || job.operation_id || null;
-    const st = document.getElementById(`status-${tab}`);
-    if (st) st.textContent = job.log || '処理中...';
-
-    if (job.status === 'done') {
-      clearInterval(iv);
-      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
-      box.className = 'result-box show success';
-      const warningHtml = job.warning
-        ? `<div style="color:#b7791f;font-size:12px;margin-bottom:12px;">${escChar(job.warning)}</div>`
-        : '';
-
-      if (tab === 'clone') {
-        const copies = job.copies || [{ tc: job.copy_transfer_code, ac: job.copy_auth_code }];
-        let copiesHtml = copies.map((c, i) => `
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">${copies.length > 1 ? `コピーアカウント ${i+1}` : 'コピーアカウント'}</div>
-          <div class="code-display" style="margin-bottom:${i < copies.length-1 ? '16' : '0'}px;">
-            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${c.tc||'—'}<button class="copy-btn" onclick="copyText('${c.tc}',this)">コピー</button></div></div>
-            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${c.ac||'—'}<button class="copy-btn" onclick="copyText('${c.ac}',this)">コピー</button></div></div>
-          </div>`).join('');
-        box.innerHTML = `
-          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">複製完了！</div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">元アカウント</div>
-          <div class="code-display" style="margin-bottom:16px;">
-            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.orig_transfer_code||'—'}<button class="copy-btn" onclick="copyText('${job.orig_transfer_code}',this)">コピー</button></div></div>
-            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.orig_auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.orig_auth_code}',this)">コピー</button></div></div>
-          </div>
-          ${copiesHtml}`;
-        addHistory({ type: 'clone', in_tc: extra.in_tc, in_ac: extra.in_ac, orig_tc: job.orig_transfer_code, orig_ac: job.orig_auth_code, copies });
-
-      } else if (tab === 'create') {
-        const accounts = job.accounts || [{ tc: job.transfer_code, ac: job.auth_code }];
-        const applied = job.applied || [];
-        let accountsHtml = accounts.map((acc, i) => `
-          ${accounts.length > 1 ? `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">アカウント ${i+1}</div>` : ''}
-          <div class="code-display" style="margin-bottom:${i < accounts.length-1 ? '14' : '0'}px;">
-            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${acc.tc||'—'}<button class="copy-btn" onclick="copyText('${acc.tc}',this)">コピー</button></div></div>
-            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${acc.ac||'—'}<button class="copy-btn" onclick="copyText('${acc.ac}',this)">コピー</button></div></div>
-          </div>`).join('');
-        box.innerHTML = `
-          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">完了しました！</div>
-          ${accountsHtml}
-          ${applied.length ? `<div style="font-size:11px;color:var(--muted);margin-top:12px;margin-bottom:6px;">適用済み項目</div><div class="applied-list">${applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
-        addHistory({ type: 'create', accounts, applied });
-
-      } else {
-        const applied = job.applied || [];
-        box.innerHTML = `
-          <div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:12px;">完了しました！</div>
-          ${warningHtml}
-          <div class="code-display">
-            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.transfer_code||'—'}<button class="copy-btn" onclick="copyText('${job.transfer_code}',this)">コピー</button></div></div>
-            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.auth_code}',this)">コピー</button></div></div>
-          </div>
-          ${applied.length ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">適用済み項目</div><div class="applied-list">${applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
-        addHistory({ type: 'daiko', in_tc: extra.in_tc, in_ac: extra.in_ac, out_tc: job.transfer_code, out_ac: job.auth_code, applied });
-      }
-
-      await fetchFreeStatus({notify:false});
-      resetBtn();
-
-    } else if (job.status === 'error') {
-      clearInterval(iv);
-      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
-      box.className = 'result-box show error-box';
-      const recoveryHtml = job.recovery_transfer_code ? `
-        <div class="code-display" style="margin-top:14px;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val">${job.recovery_transfer_code}<button class="copy-btn" onclick="copyText('${job.recovery_transfer_code}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val">${job.recovery_auth_code||'—'}<button class="copy-btn" onclick="copyText('${job.recovery_auth_code||''}',this)">コピー</button></div></div>
-        </div>` : '';
-      const transferWarning = job.transfer_received && !job.recovery_transfer_code
-        ? `<div style="color:#b7791f;font-size:12px;margin-top:12px;">引き継ぎ取得後に失敗しています。元のコードをすぐ再使用せず、管理者へ確認してください。</div>` : '';
-      box.innerHTML = `
-        ${job.admin_recovery_required && operationId ? `<div style="font-size:12px;color:var(--error);font-weight:700;margin-bottom:10px;">管理復旧用受付ID: <code>${escChar(operationId)}</code></div>` : ''}
-        <div style="color:var(--error);font-weight:700;margin-bottom:8px;">エラーが発生しました</div>
-        <div class="error-msg">${escChar(job.error||'不明なエラー')}</div>
-        ${recoveryHtml}${transferWarning}`;
-      if (tab === 'daiko' || tab === 'clone') {
-        const returnedTc = job.recovery_transfer_code || '';
-        const returnedAc = job.recovery_auth_code || '';
-        const historyEntry = {
-          type:tab,
-          operation_id:job.admin_recovery_required ? operationId : null,
-          status:'error', in_tc:extra.in_tc, in_ac:extra.in_ac,
-          error:job.error||'不明なエラー',
-          recovery_failed:!!job.admin_recovery_required
-        };
-        if (tab === 'daiko') {
-          historyEntry.out_tc = returnedTc;
-          historyEntry.out_ac = returnedAc;
-        } else {
-          historyEntry.orig_tc = returnedTc;
-          historyEntry.orig_ac = returnedAc;
-          historyEntry.copies = job.copies || [];
-        }
-        addHistory(historyEntry);
-      }
-      await fetchFreeStatus({notify:false});
-      resetBtn();
-    }
-  }, 2000);
-}
-
-function resumeSavedJobs() {
-  for (const tab of ['daiko','create','clone']) {
-    try {
-      const saved = JSON.parse(localStorage.getItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`) || 'null');
-      if (!saved?.job_id || Date.now() - Number(saved.saved_at || 0) > 30 * 60 * 1000) {
-        localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
-        continue;
-      }
-      if (document.getElementById(`btn-${tab}`) && document.getElementById(`result-${tab}`)) {
-        startJob(tab, null, null, saved.extra || {}, saved.job_id, saved.job_token || null);
-      }
-    } catch {
-      localStorage.removeItem(`${ACTIVE_JOB_KEY_PREFIX}${tab}`);
-    }
-  }
-}
-
-// ── キャラ検索 ──
-let charDict = null;
-let charSearchLoading = false;
-
-async function openCharSearch() {
-  document.getElementById('charsearch-modal').style.display = 'block';
-  document.getElementById('charsearch-input').value = '';
-  document.getElementById('charsearch-results').innerHTML = '';
-  if (!charDict && !charSearchLoading) {
-    await loadCharDict();
-  } else if (charDict) {
-    document.getElementById('charsearch-status').textContent = `${Object.keys(charDict).length} キャラクター読み込み済み`;
-  }
-  setTimeout(() => document.getElementById('charsearch-input').focus(), 100);
-}
-
-function closeCharSearch() {
-  document.getElementById('charsearch-modal').style.display = 'none';
-}
-
-async function loadCharDict() {
-  charSearchLoading = true;
-  const status = document.getElementById('charsearch-status');
-  status.textContent = 'データを取得中...';
   try {
-    const res = await fetch('/api/char_dict');
-    if (!res.ok) throw new Error('fetch failed');
-    charDict = await res.json();
-    status.textContent = `${Object.keys(charDict).length} キャラクター読み込み済み`;
-  } catch (e) {
-    status.textContent = 'データ取得に失敗しました';
-  }
-  charSearchLoading = false;
-}
-
-function onCharSearchInput() {
-  const query = document.getElementById('charsearch-input').value.trim();
-  const resultsEl = document.getElementById('charsearch-results');
-  if (!charDict) {
-    resultsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0;">データ読み込み中...</div>';
-    return;
-  }
-  if (!query) {
-    resultsEl.innerHTML = '';
-    return;
-  }
-  const results = Object.entries(charDict)
-    .filter(([name]) => name.includes(query))
-    .sort((a, b) => parseInt(a[1]) - parseInt(b[1]));
-  if (!results.length) {
-    resultsEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 0;">「${query}」は見つかりませんでした</div>`;
-    return;
-  }
-  resultsEl.innerHTML = results.map(([name, no]) =>
-    `<div style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--border);">
-      <span style="font-family:'Consolas','Monaco',monospace;font-size:13px;color:var(--accent);min-width:48px;">No.${no}</span>
-      <span style="font-size:14px;color:var(--text);">${name}</span>
-    </div>`
-  ).join('');
-}
-
-function copyText(text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓'; setTimeout(()=>btn.textContent='コピー', 1500);
-  });
-}
-
-// ── 個数管理 ──
-const countState = { create: 1, clone: 1 };
-function setCount(tab, n, el) {
-  countState[tab] = n;
-  el.closest('div').querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// ── 履歴管理 ──
-const HISTORY_KEY = 'nyanko_history';
-let currentHistTab = 'daiko';
-
-function loadHistory() {
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]').map(e => {
-      const clean = {...e};
-      // Older versions stored an automatically issued code under recovery_* but
-      // never rendered it. Migrate it into the normal returned-code fields.
-      if (clean.recovery_tc) {
-        if (clean.type === 'daiko' && !clean.out_tc) {
-          clean.out_tc = clean.recovery_tc;
-          clean.out_ac = clean.recovery_ac || '';
-        } else if (clean.type === 'clone' && !clean.orig_tc) {
-          clean.orig_tc = clean.recovery_tc;
-          clean.orig_ac = clean.recovery_ac || '';
-        }
-      }
-      if (!clean.recovery_failed) delete clean.operation_id;
-      return clean;
+    const res = await fetchWithTimeout('/api/clone_account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-  } catch { return []; }
-}
-function saveHistory(list) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-}
-function addHistory(entry) {
-  const list = loadHistory();
-  const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const filtered = list.filter(e => e.ts > oneMonthAgo);
-  filtered.unshift({ ...entry, ts: Date.now() });
-  saveHistory(filtered);
-}
-function clearHistory() {
-  if (!confirm('履歴を全削除しますか？')) return;
-  localStorage.removeItem(HISTORY_KEY);
-  renderHistory();
-}
-function openHistory() {
-  document.getElementById('history-modal').style.display = 'block';
-  renderHistory();
-}
-function closeHistory() {
-  document.getElementById('history-modal').style.display = 'none';
-}
-function openTerms() {
-  document.getElementById('terms-modal').style.display = 'block';
-}
-function closeTerms() {
-  document.getElementById('terms-modal').style.display = 'none';
-}
-function switchHistTab(tab, el) {
-  currentHistTab = tab;
-  document.querySelectorAll('.hist-tab-btn').forEach(b => {
-    b.style.background = 'none';
-    b.style.borderColor = 'var(--border)';
-    b.style.color = 'var(--muted)';
-  });
-  el.style.background = 'var(--tag-bg)';
-  el.style.borderColor = 'var(--accent)';
-  el.style.color = 'var(--accent)';
-  renderHistory();
-}
-function fmtDate(ts) {
-  const d = new Date(ts);
-  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-function renderHistory() {
-  const list = loadHistory();
-  const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const filtered = list
-    .filter(e => e.ts > oneMonthAgo)
-    .filter(e => currentHistTab === 'all' || e.type === currentHistTab);
+    const data = await res.json();
 
-  const el = document.getElementById('history-list');
-  if (!filtered.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">履歴がありません</div>';
-    return;
-  }
-
-  el.innerHTML = filtered.map(e => {
-    const typeLabel = e.type === 'daiko' ? '代行' : e.type === 'create' ? 'アカウント作成' : '複製';
-    const typeColor = e.type === 'daiko' ? '#60a5fa' : e.type === 'create' ? 'var(--success)' : 'var(--accent)';
-
-    let codesHtml = '';
-    if (e.type === 'daiko') {
-      codesHtml = `
-        <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">使用した引き継ぎコード・認証番号</div>
-        <div class="code-display" style="margin:0 0 8px;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.in_tc||'—'}<button class="copy-btn" onclick="copyText('${e.in_tc}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.in_ac||'—'}<button class="copy-btn" onclick="copyText('${e.in_ac}',this)">コピー</button></div></div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">代行後の引き継ぎコード・認証番号</div>
-        <div class="code-display" style="margin:0;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.out_tc||'—'}<button class="copy-btn" onclick="copyText('${e.out_tc}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.out_ac||'—'}<button class="copy-btn" onclick="copyText('${e.out_ac}',this)">コピー</button></div></div>
-        </div>
-        ${e.applied && e.applied.length ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px;">適応項目</div><div class="applied-list">${e.applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>` : ''}`;
-    } else if (e.type === 'create') {
-      const accounts = e.accounts || [];
-      codesHtml = accounts.map((acc, i) => `
-        ${accounts.length > 1 ? `<div style="font-size:11px;color:var(--muted);margin:${i===0?'8':'14'}px 0 4px;">アカウント ${i+1}</div>` : '<div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">作成したアカウントの引き継ぎコード・認証番号</div>'}
-        <div class="code-display" style="margin:0;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${acc.tc||'—'}<button class="copy-btn" onclick="copyText('${acc.tc}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${acc.ac||'—'}<button class="copy-btn" onclick="copyText('${acc.ac}',this)">コピー</button></div></div>
-        </div>`).join('');
-      if (e.applied && e.applied.length) {
-        codesHtml += `<div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px;">適応項目</div><div class="applied-list">${e.applied.map(a=>`<span class="applied-tag">${a}</span>`).join('')}</div>`;
+    if (data.status === 'success') {
+      resBox.className = 'result-box show success';
+      let html = `<div style="color:var(--success);font-weight:700;font-size:15px;margin-bottom:10px;">✓ アカウント複製完了！</div>`;
+      
+      if (data.original) {
+        html += `<div class="code-display" style="margin-bottom:8px;">
+          <div class="code-section-label">元アカウント（更新後）</div>
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val"><span>${data.original.transfer_code}</span><button class="copy-btn" onclick="copyText('${data.original.transfer_code}')">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val"><span>${data.original.auth_code}</span><button class="copy-btn" onclick="copyText('${data.original.auth_code}')">コピー</button></div></div>
+        </div>`;
       }
-    } else if (e.type === 'clone') {
-      const copies = e.copies || [];
-      codesHtml = `
-        <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">使用した引き継ぎコード・認証番号</div>
-        <div class="code-display" style="margin:0 0 8px;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.in_tc||'—'}<button class="copy-btn" onclick="copyText('${e.in_tc}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.in_ac||'—'}<button class="copy-btn" onclick="copyText('${e.in_ac}',this)">コピー</button></div></div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">元のアカウントの引き継ぎコード・認証番号</div>
-        <div class="code-display" style="margin:0 0 8px;">
-          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${e.orig_tc||'—'}<button class="copy-btn" onclick="copyText('${e.orig_tc}',this)">コピー</button></div></div>
-          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${e.orig_ac||'—'}<button class="copy-btn" onclick="copyText('${e.orig_ac}',this)">コピー</button></div></div>
-        </div>
-        ${copies.map((c, i) => `
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${copies.length > 1 ? `複製アカウント ${i+1}` : '複製のアカウントの引き継ぎコード・認証番号'}</div>
-          <div class="code-display" style="margin:0 ${i < copies.length-1 ? '0 8px' : ''};">
-            <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val" style="font-size:14px;">${c.tc||'—'}<button class="copy-btn" onclick="copyText('${c.tc}',this)">コピー</button></div></div>
-            <div class="code-box"><div class="clabel">認証番号</div><div class="code-val" style="font-size:14px;">${c.ac||'—'}<button class="copy-btn" onclick="copyText('${c.ac}',this)">コピー</button></div></div>
-          </div>`).join('')}`;
+      
+      const clones = data.clones || [];
+      clones.forEach((acc, idx) => {
+        html += `<div class="code-display" style="margin-bottom:8px;">
+          <div class="code-section-label">複製アカウント #${idx+1}</div>
+          <div class="code-box"><div class="clabel">引き継ぎコード</div><div class="code-val"><span>${acc.transfer_code}</span><button class="copy-btn" onclick="copyText('${acc.transfer_code}')">コピー</button></div></div>
+          <div class="code-box"><div class="clabel">認証番号</div><div class="code-val"><span>${acc.auth_code}</span><button class="copy-btn" onclick="copyText('${acc.auth_code}')">コピー</button></div></div>
+        </div>`;
+      });
+
+      statusEl.innerHTML = html;
+      loadUsageStats();
+    } else {
+      resBox.className = 'result-box show error-box';
+      statusEl.innerHTML = `<div class="error-msg">❌ エラー: ${escChar(data.message || '複製に失敗しました')}</div>`;
     }
-
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700;background:color-mix(in srgb,${typeColor} 15%,transparent);border:1px solid color-mix(in srgb,${typeColor} 40%,transparent);color:${typeColor};">${typeLabel}</span>
-        <span style="font-size:11px;color:var(--muted);margin-left:auto;">${fmtDate(e.ts)}</span>
-      </div>
-      ${e.operation_id && e.recovery_failed ? `<div style="font-size:11px;color:var(--error);margin-bottom:6px;">管理復旧用受付ID: <code>${escChar(e.operation_id)}</code> / 管理パネルで再発行が必要</div>` : ''}
-      ${e.status==='error' ? `<div class="error-msg">${escChar(e.error||'不明なエラー')}</div>${e.recovery_failed?'<div style="color:var(--error);font-size:11px;">管理パネルで引き継ぎコードを再発行してください</div>':''}` : ''}
-      ${codesHtml}
-    </div>`;
-  }).join('');
+  } catch (e) {
+    resBox.className = 'result-box show error-box';
+    statusEl.innerHTML = `<div class="error-msg">❌ 通信エラーが発生しました。</div>`;
+  } finally {
+    validateTabButtons('clone');
+  }
 }
 
-buildOptions('daiko');
-buildOptions('create');
-updateTrialCountdown();setInterval(updateTrialCountdown,1000);
-if(new URLSearchParams(location.search).get('trial_invite')==='1')setTimeout(()=>toggleInvitation(true),250);
-resumeSavedJobs();
-observeRunButtons();
-initialiseFreeUsage();
-setInterval(()=>fetchFreeStatus({notify:true}),15000);
+// モーダル・招待・履歴ダイアログ等のヘルパー
+function toggleInvitation(show) {
+  const el = document.getElementById('invite-drawer');
+  if (!el) return;
+  const target = show !== undefined ? show : !el.classList.contains('open');
+  el.classList.toggle('open', target);
+  el.setAttribute('aria-hidden', !target);
+  if (target) loadInvitationLink();
+}
 
-// ── 使用回数のリアルタイム表示 ──
-async function fetchUsageCount() {
+async function loadInvitationLink() {
+  const input = document.getElementById('invitation-link');
+  const btn = document.getElementById('copy-invitation-button');
   try {
-    const res = await fetch('/api/usage_count');
-    if (!res.ok) return;
-    const { count } = await res.json();
-    const el = document.getElementById('usage-count-num');
-    if (el) el.textContent = count.toLocaleString('ja-JP');
-  } catch (e) { /* 通信エラーは無視して次回の更新を待つ */ }
+    const res = await fetch('/api/get_invite_link');
+    if (res.ok) {
+      const data = await res.json();
+      input.value = data.link || window.location.origin + '?ref=' + (data.code || '');
+      btn.disabled = false;
+    }
+  } catch { input.value = '取得失敗'; }
 }
-fetchUsageCount();
-setInterval(fetchUsageCount, 5000);
+
+function copyInvitationLink() {
+  const input = document.getElementById('invitation-link');
+  if (input && input.value) copyText(input.value);
+}
+
+function openCharSearch() { document.getElementById('charsearch-modal').style.display='block'; }
+function closeCharSearch() { document.getElementById('charsearch-modal').style.display='none'; }
+function openHistory() { document.getElementById('history-modal').style.display='block'; fetchHistory('daiko'); }
+function closeHistory() { document.getElementById('history-modal').style.display='none'; }
+function openTerms() { document.getElementById('terms-modal').style.display='block'; }
+function closeTerms() { document.getElementById('terms-modal').style.display='none'; }
+
+async function fetchHistory(type) {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '読み込み中...';
+  try {
+    const res = await fetch(`/api/history?type=${type}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.items || !data.items.length) { list.innerHTML = '<div class="char-note">履歴はありません</div>'; return; }
+      list.innerHTML = data.items.map(item => `<div style="padding:10px;border-bottom:1px solid var(--border);font-size:12px;"><div>📅 ${item.created_at}</div><div style="color:var(--accent);">${escChar(item.summary || '')}</div></div>`).join('');
+    }
+  } catch { list.innerHTML = '取得に失敗しました'; }
+}
+
+function switchHistTab(type, btn) {
+  document.querySelectorAll('.hist-tab-btn').forEach(b => { b.style.borderColor='var(--border)'; b.style.background='none'; b.style.color='var(--muted)'; });
+  btn.style.borderColor='var(--accent)'; btn.style.background='var(--tag-bg)'; btn.style.color='var(--accent)';
+  fetchHistory(type);
+}
+
+async function clearHistory() {
+  if (!confirm('使用履歴を消去しますか？')) return;
+  try { await fetch('/api/history/clear', {method:'POST'}); fetchHistory('daiko'); } catch {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildOptions('daiko');
+  buildOptions('create');
+  loadUsageStats();
+  observeRunButtons();
+  validateTabButtons('daiko');
+});
 </script>
 </body>
 </html>
