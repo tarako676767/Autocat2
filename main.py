@@ -116,19 +116,6 @@ MAX_LEGEND_SELECTIONS = 5000 # レジェンド系の章/星/ステージ選択�
 TARGET_GAME_VERSION_NUMBER = 150501
 
 # 通常ページから非表示にするだけでなく、APIへ直接送られてもVIP確認なしでは適用しない。
-VIP_ONLY_SYSTEM_ACTIONS = {
-    "user_rank_rewards_claimed",
-    "user_rank_rewards_unclaimed",
-    "catguide_rewards_claimed",
-    "catguide_rewards_unclaimed",
-    "cat_scratcher_reset",
-    "all_missions_clear",
-    "labyrinth_medals",
-    "ototo_detailed",
-    "dojo_score_detailed",
-    "future_score_detailed",
-}
-
 # =====================
 # Discord OAuth2（チャット・管理者認証用）
 # =====================
