@@ -542,7 +542,6 @@
     <a href="/account/login" class="btn btn-ghost">サイトログイン</a>
     {% else %}
     <a href="/account" class="user-chip" style="text-decoration:none;">
-      {{ user.username }}{% if user.is_vip %} <span class="vip-badge">★VIP</span>{% endif %}
     </a>
     <a href="/account/logout" class="btn btn-ghost">サイトログアウト</a>
     {% endif %}
