@@ -1025,6 +1025,23 @@ def auth_callback():
     if not code:
         return redirect("/?login_error=code")
 
+    # =========================================================
+    # ここから下に既存の「Discordからユーザー情報を取得する処理」があるはずです
+    # （例: user_info = get_discord_user(code) など）
+    # =========================================================
+    
+    # 仮にユーザー情報の取得結果が `user_info` や `user_data` という変数に入っている場合：
+    discord_id = user_info.get("id") # または user_data["id"]
+
+    # --- 既存の処理 ---
+    session["discord_user"] = user_info
+
+    # ★【ここを追加】サイトアカウントのセッション状態も同時に有効化・同期する
+    session["site_account_id"] = f"discord:{discord_id}"
+    session["logged_in"] = True
+
+    return redirect("/")
+    
     try:
         token_res = requests.post(
             f"{DISCORD_API}/oauth2/token",
